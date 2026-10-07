@@ -1,0 +1,32 @@
+import {chromium} from '@playwright/test'
+import assert from 'node:assert/strict'
+import {readFile,readdir,mkdir} from 'node:fs/promises'
+const browser=await chromium.launch({headless:true,channel:process.env.PLAYWRIGHT_CHANNEL || undefined})
+const context=await browser.newContext({viewport:{width:390,height:844}})
+const page=await context.newPage()
+try {
+  const errors=[];page.on('pageerror',e=>errors.push(e.message))
+  await page.goto('http://127.0.0.1:4173/')
+  await page.getByRole('heading',{name:'Bom ter você por aqui.'}).waitFor()
+  assert.equal(await page.getByRole('button',{name:'Explorar demonstração'}).count(),0)
+  await page.evaluate(()=>{sessionStorage.setItem('testomax:demo-session','true');localStorage.setItem('access','active')})
+  await page.reload()
+  assert.equal(await page.getByRole('heading',{name:'Bom ter você por aqui.'}).count(),1)
+  await page.evaluate(async()=>{await navigator.serviceWorker.ready})
+  await page.reload()
+  const cached=await page.evaluate(async()=>{const keys=await caches.keys();const urls=[];for(const key of keys){for(const request of await (await caches.open(key)).keys())urls.push(request.url)}return urls})
+  assert.ok(cached.length>10)
+  assert.ok(cached.every(url=>new URL(url).origin==='http://127.0.0.1:4173'))
+  assert.ok(cached.every(url=>!/(supabase|\/api\/|access_token)/.test(url)))
+  const manifest=JSON.parse(await readFile('dist/manifest.webmanifest','utf8'))
+  assert.equal(manifest.id,'/');assert.equal(manifest.display,'standalone');assert.ok(manifest.icons.some(i=>i.purpose==='maskable'))
+  const scripts=await readdir('dist/assets')
+  for(const file of scripts.filter(f=>f.endsWith('.js'))) assert.ok(!(await readFile(`dist/assets/${file}`,'utf8')).includes('testomax:development-demo:v1'),'Adaptador demo deve estar fora do build')
+  await context.setOffline(true)
+  await page.goto('http://127.0.0.1:4173/protocolos')
+  await page.getByRole('heading',{name:'Sua rotina espera por você'}).waitFor()
+  await mkdir('test-results',{recursive:true})
+  await page.screenshot({path:'test-results/producao-offline.png',fullPage:true})
+  assert.deepEqual(errors,[])
+  console.log('PASS: produção sem bypass, manifest, service worker, cache somente público e abertura offline de rota protegida.')
+} finally {await context.close();await browser.close()}

@@ -1,0 +1,22 @@
+/* Ajustes comuns de toque, inclusive telas de 320 px. */
+.page-heading .eyebrow {color:#a1a3af;}
+.row-arrow {min-width:44px;}
+.grocery-row .icon-button {min-width:44px;}
+.day-picker {overflow-x:auto; padding:4px 2px;}
+.day-picker button {min-width:44px;}
+.week-strip:has(button) {grid-template-columns:repeat(7,minmax(44px,1fr)); overflow-x:auto; padding:4px 2px;}
+.calendar-grid {grid-template-columns:repeat(7,minmax(44px,1fr)); overflow-x:auto; padding:4px 2px;}
+@media(max-width:700px) {
+  .today-columns > .column-stack {display:contents;}
+  .today-columns .routine-panel {order:1;}
+  .today-columns .next-meal-panel {order:2;}
+  .today-columns .shopping-shortcut {order:3;}
+  .today-columns .consistency-panel {order:4;}
+  .focus-progress .progress-ring {width:50px !important;height:50px !important;}
+  .focus-progress .progress-ring circle {stroke-width:8px;}
+  .activity-detail strong {font-size:13px;}
+  .activity-detail > span {font-size:11px;}
+  .row-arrow {display:none;}
+  .activity-detail {padding-right:4px;}
+  .day-picker button {flex-shrink:0;}
+}
