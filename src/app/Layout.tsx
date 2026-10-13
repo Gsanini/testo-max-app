@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Home,
   RefreshCw,
-  ShieldCheck,
   Sparkles,
   UserRound,
   Utensils,
@@ -28,8 +27,8 @@ const navigation = [
   { to: "/perfil", title: "Perfil", icon: UserRound },
 ];
 export default function Layout() {
-  const { data, today, busy, feedback, dismiss, retry } = useWorkspace();
-  const { demo } = useAuth();
+  const { today, busy, feedback, dismiss, retry } = useWorkspace();
+  const { online } = useAuth();
   const location = useLocation();
   const pwa = usePwa();
   const current = [...navigation]
@@ -78,11 +77,11 @@ export default function Layout() {
           </div>
           <Link className='sidebar-user' to='/perfil'>
             <span className='avatar'>
-              {data.profile.name.slice(0, 2).toUpperCase()}
+              <UserRound size={17} />
             </span>
             <div>
-              <strong>{data.profile.name.split(" ")[0]}</strong>
-              <span>{demo ? "Perfil de demonstração" : "Minha conta"}</span>
+              <strong>Bem-vindo</strong>
+              <span>Minhas preferências</span>
             </div>
             <ChevronRight size={16} />
           </Link>
@@ -106,9 +105,9 @@ export default function Layout() {
                 ? "Salvando…"
                 : feedback?.error
                   ? "Falha ao salvar"
-                  : demo
-                    ? "Demonstração local"
-                    : "Conectado"}
+                  : online
+                    ? "Salvo neste dispositivo"
+                    : "Offline · salvo localmente"}
             </span>
             <span className='topbar-divider' />
             <span className='topbar-date'>
@@ -119,21 +118,11 @@ export default function Layout() {
               className='avatar topbar-avatar'
               aria-label='Abrir meu perfil'
             >
-              {data.profile.name.slice(0, 2).toUpperCase()}
+              <UserRound size={17} />
             </Link>
           </div>
         </header>
-        {demo && (
-          <div className='demo-banner'>
-            <span>
-              <ShieldCheck size={14} />
-              Demonstração de desenvolvimento
-            </span>
-            <span>
-              Conteúdos ilustrativos · registros salvos neste navegador
-            </span>
-          </div>
-        )}
+
         {pwa.updateAvailable && (
           <div className='update-banner'>
             <span>Uma nova versão está disponível.</span>

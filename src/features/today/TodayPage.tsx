@@ -20,7 +20,7 @@ export default function TodayPage() {
   const allDone = progress.total > 0 && progress.done === progress.total
   const tomorrow = data.activities.filter(a => a.date === addDays(today, 1))
   return <>
-    <PageHeading eyebrow="SEU ESPAÇO PARA EVOLUIR" title={`Olá, ${data.profile.name.split(' ')[0]}.`} description="Vamos cuidar da sua rotina, um passo de cada vez." action={<div className="date-chip"><CalendarDays size={16}/>{formatDate(today, {day: 'numeric', month: 'long'})}</div>}/>
+    <PageHeading eyebrow="SEU ESPAÇO PARA EVOLUIR" title="Bem-vindo." description="Vamos cuidar da sua rotina, um passo de cada vez." action={<div className="date-chip"><CalendarDays size={16}/>{formatDate(today, {day: 'numeric', month: 'long'})}</div>}/>
     <section className="focus-card">
       <div className="focus-main"><div className="focus-eyebrow"><span className="live-dot"/>{allDone ? 'DIA CONCLUÍDO' : 'SEU PRÓXIMO PASSO'}</div>
         <h2>{allDone ? 'Você cuidou de você hoje.' : next?.title ?? 'Sua rotina começa aqui.'}</h2>

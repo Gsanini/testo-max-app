@@ -1,4 +1,4 @@
-import { Sun, Dumbbell, Droplets, BookOpen, Moon, Heart, Check, ChevronRight, Clock3, ArrowUpRight, LoaderCircle, CircleAlert, CalendarDays, type LucideIcon } from 'lucide-react'
+import { Sun, Dumbbell, Droplets, BookOpen, Moon, Heart, Check, ChevronRight, Clock3, ArrowUpRight, LoaderCircle, CircleAlert, CalendarDays, ClipboardList, PersonStanding, Utensils, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,7 @@ import { dayProgress } from '@/domain/progress'
 import { formatDate, weekDays } from '@/domain/dates'
 
 export const categoryNames: Record<Category, string> = {movimento: 'Movimento', alimentacao: 'Alimentação', sono: 'Sono', 'bem-estar': 'Bem-estar'}
-const icons: Record<string, LucideIcon> = {sun: Sun, dumbbell: Dumbbell, droplet: Droplets, book: BookOpen, moon: Moon}
+const icons: Record<string, LucideIcon> = {sun: Sun, dumbbell: Dumbbell, droplet: Droplets, book: BookOpen, moon: Moon, clipboard: ClipboardList, stretch: PersonStanding, utensils: Utensils}
 export function ActivityIcon({name, className}: {name: string; className?: string}) {const Icon = icons[name] ?? Heart; return <Icon className={className} size={21} strokeWidth={1.7}/>}
 export function Brand({small = false}: {small?: boolean}) {return <span className={cn('brand', small && 'brand-small')}>TESTO<span>MAX</span><i/></span>}
 export function PageHeading({eyebrow, title, description, action}: {eyebrow?: string; title: string; description: string; action?: ReactNode}) {

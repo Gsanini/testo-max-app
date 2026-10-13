@@ -2,10 +2,19 @@ import { workspaceSchema, type Action, type Profile, type Workspace } from '@/do
 import { addDays, dateKey, defaultTimezone, weekday } from '@/domain/dates'
 import { activityTemplates, mealsForProfile } from './content'
 
-// Este módulo é importado dinamicamente somente dentro de import.meta.env.DEV.
-const storageKey = 'testomax:development-demo:v1'
-const initialProfile: Profile = {id: 'demo', name: 'Gabriel', goal: 'consistencia', experience: 'iniciante', trainingDays: [1,2,3,4,5], minutes: 30, wakeTime: '07:00', sleepTime: '22:00', diet: 'variada', timezone: defaultTimezone, onboarded: true}
+// Cada navegador mantém sua própria rotina, sem conta ou backend remoto.
+export const storageKey = 'testomax:local-workspace:v1'
+const legacyStorageKey = 'testomax:development-demo:v1'
+const initialProfile: Profile = {id: 'local', goal: 'consistencia', experience: 'iniciante', trainingDays: [1,2,3,4,5], minutes: 30, wakeTime: '07:00', sleepTime: '22:00', diet: 'variada', timezone: defaultTimezone, onboarded: false}
+const programPhases: Workspace['phases'] = [
+  {id: 'base', name: 'Começo consciente', description: 'Conheça a rotina e encontre horários que funcionam no seu dia.', current: true},
+  {id: 'consistency', name: 'Ritmo e consistência', description: 'Repita as ações essenciais e acompanhe sua evolução semanal.', current: false},
+  {id: 'nutrition', name: 'Alimentação organizada', description: 'Planeje refeições e compras com mais praticidade.', current: false},
+  {id: 'movement', name: 'Movimento progressivo', description: 'Ajuste frequência e duração conforme sua experiência.', current: false},
+  {id: 'autonomy', name: 'Autonomia e manutenção', description: 'Revise as preferências para sustentar uma rotina possível.', current: false},
+]
 function generateDays(state: Workspace) {
+  state.phases = programPhases.map(phase => ({...phase}))
   if (!state.profile.onboarded) return state
   const today = dateKey(state.profile.timezone)
   for (let offset = 0; offset < 8; offset++) {
@@ -29,13 +38,9 @@ function generateDays(state: Workspace) {
   return state
 }
 function read(): Workspace {
-  const raw = localStorage.getItem(storageKey)
+  const raw = localStorage.getItem(storageKey) ?? localStorage.getItem(legacyStorageKey)
   if (raw) return generateDays(workspaceSchema.parse(JSON.parse(raw)))
-  return generateDays({profile: initialProfile, activities: [], meals: [], grocery: [], phases: [
-    {id: 'base', name: 'Construir a base', description: 'Conheça sua rotina e encontre os horários que funcionam para você.', current: true},
-    {id: 'consistency', name: 'Criar consistência', description: 'Mantenha seus registros e ajuste sua organização.', current: false},
-    {id: 'autonomy', name: 'Sua rotina, seu ritmo', description: 'Revise as preferências para continuar com autonomia.', current: false},
-  ]})
+  return generateDays({profile: initialProfile, activities: [], meals: [], grocery: [], phases: programPhases})
 }
 export async function load(): Promise<Workspace> { const state = read(); localStorage.setItem(storageKey, JSON.stringify(state)); return state }
 export async function mutate(action: Action): Promise<void> {
@@ -56,4 +61,4 @@ export async function mutate(action: Action): Promise<void> {
   }
   localStorage.setItem(storageKey, JSON.stringify(state))
 }
-export function clear() {localStorage.removeItem(storageKey)}
+export function clear() {localStorage.removeItem(storageKey);localStorage.removeItem(legacyStorageKey)}

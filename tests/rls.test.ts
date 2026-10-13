@@ -18,7 +18,7 @@ beforeAll(async()=>{
   for (const id of [alice,bob]) {
     await db.query('select public.admin_grant_access($1)',[id])
     await db.query("select public.admin_assign_protocol($1,'10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001')",[id])
-    await user(id);const initial=await workspace();expect(initial.activities).toHaveLength(0);await db.query('select public.save_profile($1::jsonb)',[JSON.stringify({...initial.profile,onboarded:true})]);await workspace();await admin()
+    await user(id);const initial=await workspace();expect(initial.activities).toHaveLength(0);await db.query('select public.save_profile($1::jsonb)',[JSON.stringify({...initial.profile,name:'Visitante',onboarded:true})]);await workspace();await admin()
   }
 },60000)
 afterAll(async()=>{await db.close()})
@@ -84,7 +84,7 @@ describe('isolamento, autorização e persistência no PostgreSQL',()=>{
     const profile={...state.profile,name:'Alice',onboarded:true,goal:'energia',experience:'avancado',diet:'vegetariana',sleepTime:'23:00'}
     await db.query('select public.save_profile($1::jsonb)',[JSON.stringify(profile)])
     const after=await workspace()
-    expect(after.profile.name).toBe('Alice')
+    expect(after.profile.goal).toBe('energia')
     expect(after.activities.find(a=>a.id===first.id)?.done).toBe(true)
     expect(after.activities.some(a=>a.title==='Uma pausa para você')).toBe(true)
     expect(after.activities.filter(a=>a.date>first.date&&a.icon==='moon').every(a=>a.time==='23:00')).toBe(true)

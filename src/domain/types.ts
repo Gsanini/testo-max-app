@@ -3,14 +3,14 @@ import { z } from 'zod'
 export const categorySchema = z.enum(['movimento', 'alimentacao', 'sono', 'bem-estar'])
 export type Category = z.infer<typeof categorySchema>
 export const profileSchema = z.object({
-  id: z.string(), name: z.string().trim().min(2, 'Informe pelo menos 2 letras.').max(60),
+  id: z.string(),
   goal: z.enum(['consistencia', 'forca', 'energia']),
   experience: z.enum(['iniciante', 'intermediario', 'avancado']),
   trainingDays: z.array(z.number().int().min(0).max(6)).min(1, 'Escolha ao menos um dia.'),
   minutes: z.number().int().min(10).max(90),
   wakeTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   sleepTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  diet: z.enum(['variada', 'vegetariana']),
+  diet: z.enum(['variada', 'vegetariana', 'vegana', 'mediterranea']),
   timezone: z.string().refine(value => { try { new Intl.DateTimeFormat('pt-BR', {timeZone: value}); return true } catch { return false } }, 'Fuso horário inválido.'),
   onboarded: z.boolean(),
 })
@@ -42,7 +42,6 @@ export const workspaceSchema = z.object({
   phases: z.array(z.object({id: z.string(), name: z.string(), description: z.string(), current: z.boolean()})),
 })
 export type Workspace = z.infer<typeof workspaceSchema>
-export type Access = {status: 'active' | 'pending' | 'expired' | 'revoked'; expiresAt: string | null}
 export type Action =
   | {type: 'activity'; id: string; done: boolean}
   | {type: 'meal'; id: string; done: boolean}
