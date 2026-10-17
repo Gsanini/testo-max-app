@@ -1,100 +1,117 @@
-import {test,expect,type Page} from '@playwright/test'
-async function enter(page:Page) {await page.goto('/');await page.getByRole('button',{name:'Entrar na minha rotina'}).click();await page.getByRole('button',{name:'Continuar',exact:true}).click();await page.getByRole('button',{name:'Continuar',exact:true}).click();await page.getByRole('button',{name:'Começar minha rotina'}).click();await expect(page.getByRole('heading',{name:'Bem-vindo.'})).toBeVisible()}
-test('concluir, recarregar, desfazer e consultar progresso',async({page},testInfo)=>{
+﻿import {test,expect} from '@playwright/test'
+import {enter,workspace} from './helpers'
+
+test('onboarding, concluir, recarregar e desfazer sem duplicar XP',async({page},testInfo)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
   await enter(page)
-  await page.getByRole('button',{name:'Abrir detalhes de Um momento ao ar livre'}).click()
-  await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(page.getByText('Conteúdo de demonstração.',{exact:false})).toBeVisible()
+  await expect(page.locator('.activity-row')).toHaveCount(4)
+  await page.getByRole('button',{name:'Começar missão',exact:true}).click()
+  await expect(page.getByRole('dialog')).toContainText('Se hoje precisar ser diferente')
   await page.getByRole('button',{name:'Marcar como concluída',exact:true}).click()
-  await expect(page.getByRole('button',{name:'Desfazer Um momento ao ar livre'})).toHaveAttribute('aria-pressed','true')
-  await page.reload()
-  await expect(page.getByRole('button',{name:'Desfazer Um momento ao ar livre'})).toHaveAttribute('aria-pressed','true')
+  await expect(page.locator('.level-pill')).toContainText('10 XP')
+  await page.reload();await expect(page.locator('.level-pill')).toContainText('10 XP')
+  await page.getByRole('button',{name:'Desfazer Escolher seu próximo passo',exact:true}).click()
+  await expect(page.locator('.level-pill')).toContainText('0 XP')
+  await page.getByRole('button',{name:'Concluir Escolher seu próximo passo',exact:true}).click()
+  await expect(page.locator('.level-pill')).toContainText('10 XP')
   await page.screenshot({path:`test-results/${testInfo.project.name}-hoje.png`,fullPage:true})
-  await page.goto('/progresso')
-  await expect(page.getByRole('heading',{name:'Seu progresso',exact:true})).toBeVisible()
+  await page.goto('/progresso');await expect(page.locator('.earned')).toHaveCount(1)
   await page.getByRole('button',{name:'Como calculamos'}).click();await expect(page.getByRole('dialog')).toContainText('Refeições têm registro próprio')
-  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible()
-  await page.goto('/')
-  await page.getByRole('button',{name:'Desfazer Um momento ao ar livre'}).click()
-  await expect(page.getByRole('button',{name:'Concluir Um momento ao ar livre'})).toHaveAttribute('aria-pressed','false')
-  expect(errors).toEqual([])
+  await page.keyboard.press('Escape');expect(errors).toEqual([])
 })
-test('refeição e lista de compras com persistência e edição',async({page})=>{
-  await enter(page);await page.goto('/alimentacao')
-  await page.getByRole('button',{name:'Registrar Café da manhã',exact:true}).click()
-  await expect(page.getByRole('button',{name:'Desfazer Café da manhã'})).toBeVisible()
-  await page.goto('/alimentacao/compras');await page.getByRole('button',{name:'Gerar lista',exact:true}).click()
-  const buy=page.getByRole('button',{name:'Comprar Banana',exact:true});await expect(buy).toBeVisible();await buy.click()
-  await expect(page.getByRole('button',{name:'Desmarcar Banana',exact:true})).toHaveAttribute('aria-pressed','true')
-  await page.reload();await expect(page.getByRole('button',{name:'Desmarcar Banana',exact:true})).toHaveAttribute('aria-pressed','true')
+
+test('mapa, conclusão total e liberação apenas na meia-noite local',async({page})=>{
+  await enter(page)
+  for(const name of ['Escolher seu próximo passo','Pausa de recuperação','Escolher a próxima refeição','Encerrar as tarefas'])await page.getByRole('button',{name:`Concluir ${name}`,exact:true}).click()
+  await expect(page.locator('.day-celebration')).toBeVisible()
+  await expect(page.locator('.level-pill')).toContainText('40 XP')
+  await page.goto('/jornada');await page.getByRole('button',{name:/Dia 2: Uma pausa que cabe/}).click()
+  await expect(page.getByRole('dialog')).toContainText('Abre em 18 de outubro')
+  await expect(page.getByRole('link',{name:'Abrir protocolo'})).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await page.getByRole('button',{name:/CAPÍTULO 4 Consolidar/}).click()
+  await page.getByRole('button',{name:/Dia 120:/}).click();await expect(page.getByRole('dialog')).toContainText('O caminho continua')
+  await page.goto('/?dia=2');await expect(page.getByRole('button',{name:'Começar missão'})).toHaveCount(0)
+  await page.clock.setFixedTime(new Date('2026-10-18T02:59:59Z'));await page.reload()
+  await expect(page.getByText('PRÉVIA DO PROTOCOLO')).toBeVisible()
+  await page.clock.setFixedTime(new Date('2026-10-18T03:00:01Z'));await page.clock.runFor(1100)
+  await expect(page.getByRole('button',{name:'Começar missão'})).toBeVisible()
+  await page.goto('/');await expect(page.getByText('DIA 2 DE 120',{exact:true})).toBeVisible()
+})
+
+test('troca futura recalcula lista, mantém itens pessoais e persiste',async({page})=>{
+  await enter(page);await page.goto('/alimentacao/compras')
+  await page.getByRole('button',{name:'Gerar lista',exact:true}).click()
   await page.getByRole('button',{name:'Adicionar item',exact:true}).click();await page.getByRole('textbox',{name:'Nome do item'}).fill('Café pessoal');await page.getByRole('button',{name:'Salvar item'}).click()
-  await page.getByRole('button',{name:'Editar Café pessoal'}).click();await page.getByRole('spinbutton',{name:'Quantidade'}).fill('2');await page.getByRole('button',{name:'Salvar item'}).click()
-  await expect(page.getByText('2 un · pessoal')).toBeVisible()
-  await page.getByRole('button',{name:'Gerar lista',exact:true}).click();await expect(page.getByText('Café pessoal',{exact:true})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Desmarcar Banana',exact:true})).toHaveAttribute('aria-pressed','true')
+  const before=await workspace(page)
+  await page.goto('/alimentacao');await page.locator('.food-week button').nth(1).click()
+  await expect(page.getByRole('button',{name:'Registrar Almoço',exact:true})).toBeDisabled()
+  await page.getByRole('button',{name:'Trocar Almoço',exact:true}).click()
+  await page.locator('.recipe-alternatives button').first().click()
+  await expect(page.getByRole('dialog')).not.toBeVisible()
+  const after=await workspace(page)
+  expect(after.grocery).not.toEqual(before.grocery)
+  expect(after.grocery.some((i:{name:string})=>i.name==='Café pessoal')).toBe(true)
+  await page.reload();expect((await workspace(page)).grocery).toEqual(after.grocery)
+  await page.goto('/alimentacao/compras');await expect(page.getByText('Café pessoal',{exact:true})).toBeVisible()
 })
-test('preferências, semana, navegação e logout preservam os dados locais',async({page})=>{
-  await enter(page);await page.goto('/perfil');await page.getByRole('combobox',{name:'Estilo de alimentação'}).selectOption('mediterranea')
+
+test('personalização real, restrições, biblioteca e saída preservam dados',async({page})=>{
+  await enter(page);await page.goto('/perfil')
+  await page.getByRole('combobox',{name:'Estilo de alimentação'}).selectOption('vegana')
+  await page.getByRole('checkbox',{name:'Soja',exact:true}).check()
+  await page.getByRole('combobox',{name:'Adicionar ingrediente a evitar'}).selectOption('Banana')
+  await page.getByRole('combobox',{name:'Tempo por preparo'}).selectOption('10')
+  await page.getByRole('combobox',{name:'Tempo diário para as missões'}).selectOption('10')
+  await page.getByRole('radio',{name:'Na academia',exact:true}).check()
   await page.getByRole('button',{name:'Salvar preferências'}).click()
-  await page.reload();await expect(page.getByRole('combobox',{name:'Estilo de alimentação'})).toHaveValue('mediterranea')
-  await page.goto('/alimentacao');await page.getByRole('combobox',{name:'Dia das refeições'}).selectOption({index:1});await expect(page.getByRole('heading',{name:'Peixe, cuscuz e salada colorida'})).toBeVisible()
-  await page.goto('/protocolos');await page.getByRole('button',{name:'Semana',exact:true}).click();await expect(page.getByRole('button',{name:'Semana anterior'})).toBeVisible()
-  await page.getByRole('button',{name:'Hábitos',exact:true}).click();await expect(page.getByRole('heading',{name:'Hábitos da sua rotina'})).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('Alterações salvas')
+  await page.reload();await expect(page.getByRole('combobox',{name:'Estilo de alimentação'})).toHaveValue('vegana')
+  const state=await workspace(page)
+  expect(state.meals.every((m:{ingredients:{name:string}[]})=>!m.ingredients.some(i=>['Banana','Tofu','Ovo','Leite','Iogurte natural','Queijo branco','Frango cozido desfiado'].includes(i.name)))).toBe(true)
+  await page.goto('/alimentacao');await page.getByRole('button',{name:'Receitas',exact:true}).click()
+  await page.getByRole('searchbox',{name:'Buscar receita'}).fill('Banana');await expect(page.getByRole('heading',{name:'Nenhuma receita com esses filtros'})).toBeVisible()
+  await page.getByRole('searchbox',{name:'Buscar receita'}).fill('');await page.locator('.recipe-library-item').first().click();await expect(page.getByRole('dialog')).toContainText('1 porção')
   await page.goto('/perfil');await page.getByRole('button',{name:/Sair Voltar/}).click();await page.getByRole('dialog').getByRole('button',{name:'Sair',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Bom ter você por aqui.'})).toBeVisible()
-  expect(await page.evaluate(()=>localStorage.getItem('testomax:local-workspace:v1'))).not.toBeNull()
+  expect((await workspace(page)).profile.diet).toBe('vegana')
 })
-test('offline mantém os dados locais disponíveis e layouts não transbordam',async({page,context},testInfo)=>{
+
+test('migração preserva histórico e retorno permite seguir após ausência',async({page})=>{
   await enter(page)
-  for (const width of (testInfo.project.name==='celular' ? [320,390,844] : [1280,1440])) {
+  await page.evaluate(()=>{const key='testomax:local-workspace:v1';const state=JSON.parse(localStorage.getItem(key)!);const legacy=state.activities[0];delete legacy.journeyDay;legacy.id='legacy';legacy.done=true;state.activities=[legacy];state.meals=[];delete state.journey;localStorage.setItem(key,JSON.stringify(state))})
+  await page.reload();await expect(page.getByText('Uma nova jornada, com sua história preservada.')).toBeVisible()
+  expect((await workspace(page)).activities.find((a:{id:string})=>a.id==='legacy').done).toBe(true)
+  await page.clock.setFixedTime(new Date('2026-11-20T15:00:00Z'));await page.reload()
+  await expect(page.getByText('DIA 35 DE 120',{exact:true})).toBeVisible()
+  await expect(page.getByText('Pode seguir por hoje.',{exact:false})).toBeVisible()
+  await page.getByRole('button',{name:'Começar missão'}).click();await page.getByRole('button',{name:'Marcar como concluída',exact:true}).click()
+  await expect(page.locator('.level-pill')).toContainText('10 XP')
+  expect((await workspace(page)).activities.find((a:{id:string})=>a.id==='legacy').done).toBe(true)
+})
+
+test('falha ao salvar oferece repetição sem duplicar conclusão',async({page})=>{
+  await enter(page)
+  await page.evaluate(()=>{const original=Storage.prototype.setItem;let fail=true;Storage.prototype.setItem=function(key,value){if(key==='testomax:local-workspace:v1'&&fail){fail=false;throw new Error('Falha de gravação simulada. Tente novamente.')}original.call(this,key,value)}})
+  await page.getByRole('button',{name:'Concluir Escolher seu próximo passo',exact:true}).click()
+  await expect(page.getByRole('alert')).toContainText('Falha de gravação simulada')
+  await expect(page.getByRole('button',{name:'Concluir Escolher seu próximo passo',exact:true})).toHaveAttribute('aria-pressed','false')
+  await page.getByRole('button',{name:'Tentar novamente',exact:true}).click()
+  await expect(page.locator('.level-pill')).toContainText('10 XP')
+  await page.reload();await expect(page.locator('.level-pill')).toContainText('10 XP')
+})
+
+test('layouts pequenos e navegação offline mantêm registros locais',async({page,context},testInfo)=>{
+  await enter(page)
+  for(const width of (testInfo.project.name==='celular'?[320,390,844]:[1280,1440])){
     await page.setViewportSize({width,height:width===844?390:900})
-    for (const path of ['/','/protocolos','/alimentacao','/progresso','/perfil','/alimentacao/compras']) {
+    for(const path of ['/','/jornada','/alimentacao','/progresso','/perfil','/alimentacao/compras']){
       await page.goto(path);await expect(page.locator('h1')).toBeVisible()
-      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),`${path} em ${width}px`).toBe(true)
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} em ${width}px`).toBe(true)
     }
   }
   await context.setOffline(true)
-  await expect(page.getByRole('heading',{name:'Lista de compras',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Adicionar item',exact:true}).click();await page.getByRole('textbox',{name:'Nome do item'}).fill('Item offline');await page.getByRole('button',{name:'Salvar item'}).click()
+  await expect(page.getByText('Item offline',{exact:true})).toBeVisible()
   await context.setOffline(false)
-})
-
-test('onboarding usa preferências para organizar a primeira rotina',async({page})=>{
-  await enter(page)
-  await page.evaluate(()=>{
-    const key='testomax:local-workspace:v1'
-    const state=JSON.parse(localStorage.getItem(key)!)
-    state.profile.onboarded=false;state.activities=[];state.meals=[]
-    localStorage.setItem(key,JSON.stringify(state))
-  })
-  await page.reload()
-  await expect(page.getByRole('heading',{name:'Vamos começar por você.'})).toBeVisible()
-  await page.getByText('Cuidar do bem-estar',{exact:true}).click()
-  await page.getByRole('button',{name:'Continuar',exact:true}).click()
-  await page.getByRole('combobox',{name:'Tempo disponível por atividade'}).selectOption('15')
-  await page.getByRole('button',{name:'Continuar',exact:true}).click()
-  await page.getByRole('combobox',{name:'Estilo de alimentação'}).selectOption('vegetariana')
-  await page.getByRole('button',{name:'Começar minha rotina'}).click()
-  await expect(page.getByRole('heading',{name:'Bem-vindo.'})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Abrir detalhes de Uma pausa para você'})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Abrir detalhes de Organizar a alimentação'})).toBeVisible()
-  await page.goto('/alimentacao')
-  await expect(page.getByRole('heading',{name:'Tofu, arroz e vegetais'})).toBeVisible()
-  await expect(page.getByText('Plano vegetariano · 0 de 6 registradas')).toBeVisible()
-})
-
-test('falha ao salvar mantém opção de repetir sem duplicar conclusão',async({page})=>{
-  await enter(page)
-  await page.evaluate(()=>{
-    const original=Storage.prototype.setItem
-    let fail=true
-    Storage.prototype.setItem=function(key,value){if(key==='testomax:local-workspace:v1'&&fail){fail=false;throw new Error('Falha de gravação simulada. Tente novamente.')}original.call(this,key,value)}
-  })
-  await page.getByRole('button',{name:'Concluir Um momento ao ar livre',exact:true}).click()
-  await expect(page.getByRole('alert')).toContainText('Falha de gravação simulada')
-  await expect(page.getByRole('button',{name:'Concluir Um momento ao ar livre',exact:true})).toHaveAttribute('aria-pressed','false')
-  await page.getByRole('button',{name:'Tentar novamente',exact:true}).click()
-  await expect(page.getByRole('button',{name:'Desfazer Um momento ao ar livre',exact:true})).toHaveAttribute('aria-pressed','true')
-  await page.reload()
-  await expect(page.getByRole('button',{name:'Desfazer Um momento ao ar livre',exact:true})).toHaveAttribute('aria-pressed','true')
 })

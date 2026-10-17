@@ -1,29 +1,40 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ChevronRight, ShoppingBasket, Utensils, Info } from 'lucide-react'
+import { ArrowLeftRight, BookOpen, Check, ChevronRight, Clock3, Search, ShoppingBasket, Utensils } from 'lucide-react'
 import { useWorkspace } from '@/app/providers'
-import { MealDetails, EmptyState, PageHeading, Panel } from '@/components/common'
+import { MealDetails, EmptyState, PageHeading } from '@/components/common'
 import { Button } from '@/components/ui/button'
-import type { Meal } from '@/domain/types'
+import { Dialog } from '@/components/ui/dialog'
+import type { Meal, MealSlot, Recipe } from '@/domain/types'
 import { addDays, formatDate } from '@/domain/dates'
+import { isCompatible, recipeForMeal, slotNames, suitableRecipes } from '@/domain/nutrition'
+import { recipes } from '@/content/recipes'
+import { RecipeContent } from './RecipeContent'
 import { cn } from '@/lib/utils'
 
-const dietNames = {variada: 'Plano variado', vegetariana: 'Plano vegetariano', vegana: 'Plano vegano', mediterranea: 'Plano mediterrâneo'} as const
-
 export default function NutritionPage() {
-  const {data, today, act, busy} = useWorkspace()
-  const [date, setDate] = useState(today)
-  const [selected, setSelected] = useState<Meal | null>(null)
-  const meals = data.meals.filter(m => m.date === date).sort((a,b) => a.time.localeCompare(b.time))
-  const actual = meals.find(m => m.id === selected?.id) ?? selected
-  const withNutrition = meals.filter(m => m.nutrition)
-  const totals = (consumed: boolean) => withNutrition.filter(m => !consumed || m.done).reduce((sum,m) => ({calories: sum.calories + m.nutrition!.calories, protein: sum.protein + m.nutrition!.protein, carbs: sum.carbs + m.nutrition!.carbs, fat: sum.fat + m.nutrition!.fat}), {calories: 0, protein: 0, carbs: 0, fat: 0})
-  const planned = totals(false), consumed = totals(true)
-  return <><PageHeading eyebrow="ESPAÇO PARA SE NUTRIR" title="Alimentação" description="Suas refeições organizadas. Uma decisão a menos no dia." action={<Button asChild variant="secondary"><Link to="/alimentacao/compras"><ShoppingBasket size={18}/>Lista de compras</Link></Button>}/>
-    <div className="nutrition-toolbar"><div className="inline-label"><Utensils size={19}/><h2>Refeições do dia</h2><span className="subtle-badge">{dietNames[data.profile.diet]} · {meals.filter(m => m.done).length} de {meals.length} registradas</span></div><label className="sr-only" htmlFor="meal-date">Dia das refeições</label><select id="meal-date" value={date} onChange={e => setDate(e.target.value)}>{Array.from({length: 8}, (_,i) => addDays(today,i)).map(d => <option key={d} value={d}>{d === today ? 'Hoje' : formatDate(d, {weekday: 'short', day: 'numeric', month: 'short'})}</option>)}</select></div>
-    {withNutrition.length > 0 && <Panel title="Valores cadastrados no plano"><p className="muted">Consumido / planejado{withNutrition.length !== meals.length && ' · apenas refeições com dados nutricionais cadastrados'}</p><div className="macro-grid">{([{key: 'calories', label: 'Energia', unit: 'kcal'}, {key: 'protein', label: 'Proteínas', unit: 'g'}, {key: 'carbs', label: 'Carboidratos', unit: 'g'}, {key: 'fat', label: 'Gorduras', unit: 'g'}] as const).map(item => <div key={item.key}><span>{item.label}</span><strong>{consumed[item.key]} <small>/ {planned[item.key]} {item.unit}</small></strong></div>)}</div></Panel>}
-    {meals.length ? <div className="meal-grid">{meals.map((meal, i) => <article className={cn('meal-card', meal.done && 'meal-done')} key={meal.id}><button className="meal-card-photo" onClick={() => setSelected(meal)} aria-label={`Detalhes de ${meal.title}`}><img src={meal.image} alt={meal.description} loading={i > 1 ? 'lazy' : 'eager'}/><span className="meal-time">{meal.time}</span>{meal.done && <span className="meal-done-badge"><Check size={14}/>Registrada</span>}</button><div className="meal-card-content"><div className="eyebrow">{meal.title}</div><h2>{meal.description}</h2><p>{meal.ingredients.map(i => i.name).join(' · ')}</p><div className="meal-card-actions"><button className="text-link" onClick={() => setSelected(meal)}>Ingredientes e preparo<ChevronRight size={15}/></button><Button size="icon" variant={meal.done ? 'secondary' : 'outline'} aria-label={`${meal.done ? 'Desfazer' : 'Registrar'} ${meal.title}`} disabled={busy || date > today} onClick={() => void act({type: 'meal', id: meal.id, done: !meal.done})}><Check size={18}/></Button></div></div></article>)}</div> : <EmptyState title="Seu plano ainda não foi disponibilizado" text="Quando houver refeições atribuídas, você encontrará aqui os ingredientes e o modo de preparo."/>}
-    <div className="nutrition-note"><Info size={18}/><p>{meals.some(m => m.demo) ? 'Refeições de demonstração, sem prescrição individualizada. ' : ''}{withNutrition.length === 0 ? 'Calorias e macronutrientes serão exibidos quando houver valores validados no plano.' : 'Os valores consumidos incluem apenas as refeições que você registrou.'}</p></div>
-    {actual && <MealDetails meal={actual} onClose={() => setSelected(null)}/>}
+  const {data,today,act,busy}=useWorkspace()
+  const [date,setDate]=useState(today)
+  const [tab,setTab]=useState<'week'|'recipes'>('week')
+  const [selected,setSelected]=useState<Meal|null>(null)
+  const [recipe,setRecipe]=useState<Recipe|null>(null)
+  const [swap,setSwap]=useState<Meal|null>(null)
+  const [search,setSearch]=useState('')
+  const [category,setCategory]=useState<MealSlot|''>('')
+  const meals=data.meals.filter(m=>m.recipeId&&m.date===date)
+  const actual=meals.find(m=>m.id===selected?.id)??selected
+  const choices=suitableRecipes(data.profile,category||undefined).filter(r=>r.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')))
+  const alternatives=swap?suitableRecipes(data.profile,swap.slot).filter(r=>r.id!==swap.recipeId):[]
+  return <><PageHeading eyebrow="PLANEJAR TAMBÉM É CUIDAR DE VOCÊ" title="Alimentação" description="Refeições possíveis, ingredientes conhecidos e espaço para variar." action={<Button asChild variant="secondary"><Link to="/alimentacao/compras"><ShoppingBasket size={18}/>Lista de compras</Link></Button>}/>
+    <div className="nutrition-intro"><Utensils size={25}/><div><strong>Uma semana com menos improviso.</strong><p>O cardápio e as receitas ficam disponíveis antes dos protocolos. Troque uma refeição e a lista de compras acompanha sua escolha.</p></div></div>
+    <div className="tabs" aria-label="Visões da alimentação"><button aria-pressed={tab==='week'} className={cn(tab==='week'&&'active')} onClick={()=>setTab('week')}><Utensils size={17}/>Minha semana</button><button aria-pressed={tab==='recipes'} className={cn(tab==='recipes'&&'active')} onClick={()=>setTab('recipes')}><BookOpen size={17}/>Receitas</button></div>
+    <p className="nutrition-filter-note">Opções de até {data.profile.cookMinutes} min · {data.profile.budget==='economico'?'Econômicas':'Orçamento flexível'} · Restrições aplicadas <Link to="/perfil">Editar preferências</Link></p>
+    {tab==='week'?<><div className="food-week" aria-label="Dias do cardápio">{Array.from({length:7},(_,i)=>addDays(today,i)).map(d=><button key={d} aria-pressed={date===d} className={cn(date===d&&'selected')} onClick={()=>setDate(d)}><small>{d===today?'Hoje':formatDate(d,{weekday:'short'}).replace('.','')}</small><strong>{Number(d.slice(-2))}</strong></button>)}</div><div className="meal-day-heading"><h2>{date===today?'Seu cardápio de hoje':formatDate(date,{weekday:'long',day:'numeric',month:'long'})}</h2><span>{meals.filter(m=>m.done).length} de {meals.length} registradas</span></div>
+    {meals.length<4&&<div className="inline-notice" role="status">Não encontramos opções para todos os períodos com a combinação atual de preferências. Seus filtros foram mantidos. Revise tempo e orçamento no perfil ou planeje uma opção compatível fora do catálogo.</div>}
+    <div className="planned-meals">{meals.map(meal=>{const details=recipeForMeal(meal)!;return <article key={meal.id} className={cn('planned-meal',meal.done&&'meal-done')}><div className="meal-slot"><span>{meal.time}</span><strong>{meal.title}</strong></div><div className="planned-meal-main"><div className="meal-title-row"><h3>{meal.description}</h3>{meal.done&&<span className="recorded"><Check size={14}/>Registrada</span>}</div><p>{meal.ingredients.map(i=>i.name).join(' · ')}</p><span className="recipe-meta"><Clock3 size={14}/>{details.minutes} min<span>1 porção</span>{details.economical&&<span>Econômica</span>}</span>{!isCompatible(details,data.profile)&&<p className="muted">Registro anterior à mudança de preferências. Esta receita não será sugerida novamente.</p>}<div className="meal-controls"><button className="text-link" onClick={()=>setSelected(meal)}>Ingredientes e preparo<ChevronRight size={15}/></button><Button size="sm" variant="ghost" disabled={meal.done||busy} onClick={()=>setSwap(meal)} aria-label={`Trocar ${meal.title}`}><ArrowLeftRight size={15}/>Trocar refeição</Button></div></div><Button size="icon" variant={meal.done?'secondary':'outline'} aria-pressed={meal.done} aria-label={`${meal.done?'Desfazer':'Registrar'} ${meal.title}`} disabled={busy||date>today} onClick={()=>void act({type:'meal',id:meal.id,done:!meal.done})}><Check size={19}/></Button></article>})}</div><p className="muted recipe-footnote">Os horários são sugestões. O registro de refeições abre na data planejada; consultar, trocar e comprar ingredientes já está disponível.</p></>:<><div className="recipe-search"><label><Search size={18}/><span className="sr-only">Buscar receita</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar pelo nome da receita"/></label><label><span className="sr-only">Categoria da receita</span><select value={category} onChange={e=>setCategory(e.target.value as MealSlot|'')}><option value="">Todas as categorias</option>{Object.entries(slotNames).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label></div><p className="muted recipe-count">{choices.length} opções para suas preferências · {recipes.length} receitas no catálogo</p>{choices.length?<div className="recipe-library">{choices.map(r=><button key={r.id} className="recipe-library-item" onClick={()=>setRecipe(r)}><span className="recipe-book-icon"><BookOpen size={23}/></span><strong>{r.name}</strong><span>{r.minutes} min · {r.economical?'Econômica':'Variada'}</span><small>{r.slots.map(s=>slotNames[s]).join(' · ')}</small><ChevronRight size={17}/></button>)}</div>:<EmptyState title="Nenhuma receita com esses filtros" text="Tente outro nome ou categoria. Suas restrições alimentares continuam aplicadas."/>}</>}
+    <p className="food-guidance">Orientações gerais de alimentação e hábitos, sem promessas hormonais. Confira os rótulos e possíveis traços de alergênicos. <a href="https://www.gov.br/saude/pt-br/composicao/saps/promocao-da-saude/guias-alimentares" target="_blank" rel="noreferrer">Conheça o Guia Alimentar</a>.</p>
+    {actual&&<MealDetails meal={actual} onClose={()=>setSelected(null)}/>}
+    {recipe&&<Dialog open onOpenChange={open=>{if(!open)setRecipe(null)}} title={recipe.name} description="Receita do seu catálogo compatível"><RecipeContent recipe={recipe}/></Dialog>}
+    {swap&&<Dialog open onOpenChange={open=>{if(!open)setSwap(null)}} title={`Trocar ${swap.title.toLowerCase()}`} description="Alternativas filtradas pelas suas preferências. A lista de compras gerada será atualizada.">{alternatives.length?<div className="recipe-alternatives">{alternatives.map(r=><button key={r.id} disabled={busy} aria-label={`Escolher ${r.name}`} onClick={async()=>{if(await act({type:'swapMeal',id:swap.id,recipeId:r.id}))setSwap(null)}}><span><strong>{r.name}</strong><small>{r.minutes} min · {r.ingredients.map(i=>i.name).join(', ')}</small></span><ArrowLeftRight size={18}/></button>)}</div>:<EmptyState title="Sem outras opções compatíveis" text="Você pode revisar o tempo de preparo ou o orçamento nas preferências. Suas restrições serão respeitadas."/>}</Dialog>}
   </>
 }

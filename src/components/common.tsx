@@ -8,6 +8,9 @@ import { useWorkspace } from '@/app/providers'
 import type { Activity, Category, Meal } from '@/domain/types'
 import { dayProgress } from '@/domain/progress'
 import { formatDate, weekDays } from '@/domain/dates'
+import { canExecute } from '@/domain/journey'
+import { recipeForMeal } from '@/domain/nutrition'
+import { RecipeContent } from '@/features/nutrition/RecipeContent'
 
 export const categoryNames: Record<Category, string> = {movimento: 'Movimento', alimentacao: 'Alimentação', sono: 'Sono', 'bem-estar': 'Bem-estar'}
 const icons: Record<string, LucideIcon> = {sun: Sun, dumbbell: Dumbbell, droplet: Droplets, book: BookOpen, moon: Moon, clipboard: ClipboardList, stretch: PersonStanding, utensils: Utensils}
@@ -37,34 +40,38 @@ export function WeekStrip({selected, onSelect, compact = false}: {selected?: str
   })}</div>
 }
 export function ActivityList({activities}: {activities: Activity[]}) {
-  const {act, busy, today} = useWorkspace()
+  const {act, busy, today, data} = useWorkspace()
   const [selected, setSelected] = useState<Activity | null>(null)
   const actual = activities.find(a => a.id === selected?.id) ?? selected
   return <><div className="activity-list">{activities.map(activity => <div className={cn('activity-row', activity.done && 'is-done')} key={activity.id}>
-    <button className="completion" aria-label={`${activity.done ? 'Desfazer' : 'Concluir'} ${activity.title}`} aria-pressed={activity.done} disabled={busy || activity.date > today} onClick={() => void act({type: 'activity', id: activity.id, done: !activity.done})}>{activity.done && <Check size={17} strokeWidth={3}/>}</button>
+    <button className="completion" aria-label={`${activity.done ? 'Desfazer' : 'Concluir'} ${activity.title}`} aria-pressed={activity.done} disabled={busy || !canExecute(activity,data,today)} onClick={() => void act({type: 'activity', id: activity.id, done: !activity.done})}>{activity.done && <Check size={17} strokeWidth={3}/>}</button>
     <span className={`activity-symbol symbol-${activity.icon}`}><ActivityIcon name={activity.icon}/></span>
     <button className="activity-detail" aria-label={`Abrir detalhes de ${activity.title}`} onClick={() => setSelected(activity)}><strong>{activity.title}</strong><span>{categoryNames[activity.category]}<i/> {activity.minutes} min</span></button>
     <span className="activity-time">{activity.time}</span><button className="icon-button row-arrow" aria-label={`Detalhes de ${activity.title}`} onClick={() => setSelected(activity)}><ChevronRight size={17}/></button>
   </div>)}</div>{actual && <ActivityDetails activity={actual} onClose={() => setSelected(null)}/>}</>
 }
 export function ActivityDetails({activity, onClose}: {activity: Activity; onClose: () => void}) {
-  const {act, busy, today} = useWorkspace()
+  const {act, busy, today, data} = useWorkspace()
   const [time, setTime] = useState(activity.time)
   return <Dialog open onOpenChange={open => {if (!open) onClose()}} title={activity.title} description={`${categoryNames[activity.category]} · ${activity.minutes} minutos`}>
     {activity.demo && <div className="demo-note">Conteúdo de demonstração. Adapte sua rotina com orientação profissional quando necessário.</div>}
     <ol className="instruction-list">{activity.instructions.map((text, i) => <li key={i}>{text}</li>)}</ol>
+    {activity.purpose && <div className="mission-purpose"><h3>Por que fazer</h3><p>{activity.purpose}</p></div>}
+    {activity.alternative && <div className="mission-alternative"><h3>Se hoje precisar ser diferente</h3><p>{activity.alternative}</p></div>}
+    {activity.category==='alimentacao'&&<Link className="text-link" to="/alimentacao">Abrir refeições e receitas<ChevronRight size={16}/></Link>}
     {activity.exercises.length > 0 && <div className="exercise-list">{activity.exercises.map((exercise, i) => <div key={i}><span className="exercise-number">{String(i+1).padStart(2,'0')}</span><div><h3>{exercise.name}</h3><p>{exercise.sets} séries · {exercise.reps} repetições · {exercise.rest} de descanso</p><small>{exercise.note}</small></div></div>)}</div>}
-    {activity.editable && activity.date >= today && <form className="time-form" onSubmit={async event => {event.preventDefault(); await act({type: 'time', id: activity.id, time})}}><label htmlFor="activity-time">Horário desta atividade<input id="activity-time" type="time" required value={time} onChange={e => setTime(e.target.value)}/></label><Button variant="secondary" disabled={busy || time === activity.time} type="submit">Salvar horário</Button></form>}
-    <Button className="full-width" disabled={busy || activity.date > today} onClick={async () => {if (await act({type: 'activity', id: activity.id, done: !activity.done})) onClose()}}><Check size={18}/>{activity.date > today ? 'Disponível na data da atividade' : activity.done ? 'Desfazer conclusão' : 'Marcar como concluída'}</Button>
+    {activity.editable && activity.date >= today && canExecute(activity,data,today) && <form className="time-form" onSubmit={async event => {event.preventDefault(); await act({type: 'time', id: activity.id, time})}}><label htmlFor="activity-time">Horário desta atividade<input id="activity-time" type="time" required value={time} onChange={e => setTime(e.target.value)}/></label><Button variant="secondary" disabled={busy || time === activity.time} type="submit">Salvar horário</Button></form>}
+    <Button className="full-width" disabled={busy || !canExecute(activity,data,today)} onClick={async () => {if (await act({type: 'activity', id: activity.id, done: !activity.done})) onClose()}}><Check size={18}/>{!canExecute(activity,data,today) ? 'Disponível na data da atividade' : activity.done ? 'Desfazer conclusão' : 'Marcar como concluída'}</Button>
   </Dialog>
 }
 export function MealDetails({meal, onClose}: {meal: Meal; onClose: () => void}) {
   const {act, busy, today} = useWorkspace()
-  return <Dialog open onOpenChange={open => {if (!open) onClose()}} title={meal.title} description={`${meal.time} · ${meal.description}`}>
+  const recipe = recipeForMeal(meal)
+  return <Dialog open onOpenChange={open => {if (!open) onClose()}} title={recipe?.name ?? meal.title} description={`${meal.time} · ${meal.description}`}>
     {meal.demo && <div className="demo-note">Refeição ilustrativa. As quantidades não representam uma prescrição nutricional individualizada.</div>}
-    <h3 className="section-label">Ingredientes</h3><ul className="ingredient-list">{meal.ingredients.map((i, n) => <li key={n}><span>{i.name}</span><strong>{i.quantity.toLocaleString('pt-BR')} {i.unit}</strong></li>)}</ul>
+    {recipe ? <RecipeContent recipe={recipe}/> : <><h3 className="section-label">Ingredientes</h3><ul className="ingredient-list">{meal.ingredients.map((i, n) => <li key={n}><span>{i.name}</span><strong>{i.quantity.toLocaleString('pt-BR')} {i.unit}</strong></li>)}</ul>
     <h3 className="section-label">Modo de preparo</h3><ol className="instruction-list">{meal.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
-    {meal.substitutions.length > 0 && <><h3 className="section-label">Substituições cadastradas</h3>{meal.substitutions.map(s => <p className="muted copy" key={s}>{s}</p>)}</>}
+    </>}{meal.substitutions.length > 0 && <><h3 className="section-label">Substituições cadastradas</h3>{meal.substitutions.map(s => <p className="muted copy" key={s}>{s}</p>)}</>}
     {meal.nutrition && <p className="nutrition-line">Planejado: {meal.nutrition.calories} kcal · P {meal.nutrition.protein} g · C {meal.nutrition.carbs} g · G {meal.nutrition.fat} g</p>}
     <Button className="full-width" disabled={busy || meal.date > today} onClick={async () => {if (await act({type: 'meal', id: meal.id, done: !meal.done})) onClose()}}><Check size={18}/>{meal.date > today ? 'Disponível na data da refeição' : meal.done ? 'Desfazer registro' : 'Registrar refeição realizada'}</Button>
   </Dialog>

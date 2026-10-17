@@ -13,5 +13,8 @@ export function consolidateIngredients(meals: Meal[], existing: GroceryItem[] = 
       items.set(key, {...ingredient, quantity, unit, id: saved?.id ?? crypto.randomUUID(), sourceKey: key, checked: saved?.checked ?? false, personal: false})
     }
   }
-  return [...items.values()]
+  return [...items.values()].map(item => {
+    const saved=existing.find(i=>i.sourceKey===item.sourceKey&&!i.personal)
+    return {...item,checked:Boolean(saved?.checked && saved.quantity>=item.quantity)}
+  })
 }

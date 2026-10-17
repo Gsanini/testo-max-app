@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { to: "/", title: "Hoje", icon: Home, end: true },
-  { to: "/protocolos", title: "Protocolos", icon: ClipboardList },
+  { to: "/jornada", title: "Jornada", icon: ClipboardList },
   { to: "/alimentacao", title: "Alimentação", icon: Utensils },
   { to: "/progresso", title: "Progresso", icon: BarChart3 },
   { to: "/perfil", title: "Perfil", icon: UserRound },
@@ -142,7 +142,7 @@ export default function Layout() {
         </main>
       </div>
       <nav className='bottom-nav' aria-label='Navegação principal no celular'>
-        {navigation.map((item) => (
+        {navigation.filter(item => item.to !== '/perfil').map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

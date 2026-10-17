@@ -49,7 +49,7 @@ export default function ProfilePage() {
               </button>
             </div>
           </Panel>
-          <p className='version-label'>TESTOMAX · VERSÃO 1.0.0</p>
+          <p className='version-label'>TESTOMAX · JORNADA 2.0</p>
         </div>
       </div>
       <Dialog
@@ -82,7 +82,7 @@ export default function ProfilePage() {
           <div className='copy info-copy'>
             <h3>Como registrar uma atividade?</h3><p>Na tela Hoje, toque no círculo ao lado da atividade. Toque novamente para desfazer.</p>
             <h3>Onde ajusto meus horários?</h3><p>Nos detalhes de uma atividade ou nas preferências do perfil.</p>
-            <h3>Como funciona a lista de compras?</h3><p>Escolha o período e toque em Gerar lista. Seus itens pessoais permanecem.</p>
+            <h3>Como funciona a lista de compras?</h3><p>Escolha o período e toque em Gerar lista. Ao trocar refeições, os ingredientes são recalculados. Itens pessoais permanecem; quantidades aumentadas voltam a ficar pendentes.</p>
           </div>
         )}
         {dialog === 'logout' && (

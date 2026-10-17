@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { loadWorkspace, saveAction } from '@/services/repository'
 import {grantSharedAccess, hasSharedAccess, revokeSharedAccess} from '@/services/sharedAccess'
@@ -6,7 +6,7 @@ import { dateKey, defaultTimezone } from '@/domain/dates'
 import type { Action, Workspace } from '@/domain/types'
 import { messageOf } from '@/lib/utils'
 
-export const queryClient = new QueryClient({defaultOptions: {queries: {retry: 1, staleTime: 20000, refetchOnWindowFocus: true}, mutations: {retry: 0, networkMode: 'always'}}})
+export const queryClient = new QueryClient({defaultOptions: {queries: {retry: 1, staleTime: 20000, refetchOnWindowFocus: true, networkMode:'always'}, mutations: {retry: 0, networkMode: 'always'}}})
 // Somente RAM: mantém a intenção recuperável durante uma queda de conexão, sem cache privado offline.
 const uncertainActions = new Map<string, Action>()
 type AuthState = {authenticated: boolean; online: boolean; enter: () => void; logout: () => Promise<void>}
@@ -34,9 +34,11 @@ const WorkspaceContext = createContext<WorkspaceState | null>(null)
 export function useWorkspace() {const context = useContext(WorkspaceContext); if (!context) throw new Error('WorkspaceProvider ausente'); return context}
 export function WorkspaceProvider({children, loading, errorView}: {children: ReactNode; loading: ReactNode; errorView: (error: unknown, retry: () => void) => ReactNode}) {
   const client = useQueryClient()
+  const submitting = useRef(false)
   const [clock, setClock] = useState(Date.now())
   const [timezone, setTimezone] = useState(defaultTimezone)
-  useEffect(() => {const timer = setInterval(() => setClock(Date.now()), 30000); return () => clearInterval(timer)}, [])
+  useEffect(() => {const tick=()=>setClock(Date.now());const timer = setInterval(tick, 1000);window.addEventListener('focus',tick);document.addEventListener('visibilitychange',tick);return () => {clearInterval(timer);window.removeEventListener('focus',tick);document.removeEventListener('visibilitychange',tick)}}, [])
+  useEffect(() => {const sync=(event:StorageEvent)=>{if(event.key==='testomax:local-workspace:v1')void client.invalidateQueries({queryKey:['workspace']})};window.addEventListener('storage',sync);return ()=>window.removeEventListener('storage',sync)},[client])
   const today = dateKey(timezone, new Date(clock))
   const key = ['workspace', 'local', today]
   const query = useQuery({queryKey: key, queryFn: loadWorkspace})
@@ -63,10 +65,10 @@ export function WorkspaceProvider({children, loading, errorView}: {children: Rea
     },
     onSuccess: (_data, action) => {uncertainActions.delete(owner); setFailed(null); setFeedback({text: action.type === 'activity' || action.type === 'meal' ? action.done ? 'Concluído. Mais um passo no seu dia!' : 'Conclusão desfeita.' : 'Alterações salvas.', error: false})},
     onError: (error, action, context) => {if (context?.previous) client.setQueryData(key, context.previous); setFailed(action); setFeedback({text: messageOf(error), error: true})},
-    onSettled: () => {void client.invalidateQueries({queryKey: key})},
+    onSettled: () => client.invalidateQueries({queryKey: ['workspace']}),
   })
   useEffect(() => {if (feedback && !feedback.error) {const timer = setTimeout(() => setFeedback(null), 4000); return () => clearTimeout(timer)}}, [feedback])
-  const act = async (action: Action) => {if (mutation.isPending) return false; try {await mutation.mutateAsync(action); return true} catch {return false}}
+  const act = async (action: Action) => {if (submitting.current) return false;submitting.current=true;try {await mutation.mutateAsync(action); return true} catch {return false} finally {submitting.current=false}}
   if (query.isPending) return loading
   if (!query.data || query.isError) return errorView(query.error, () => {void query.refetch()})
   return <WorkspaceContext.Provider value={{data: query.data, today, act, busy: mutation.isPending, feedback, dismiss: () => {setFeedback(null); setFailed(null); uncertainActions.delete(owner)}, retry: () => {if (failed) void act(failed)}}}>{children}</WorkspaceContext.Provider>
