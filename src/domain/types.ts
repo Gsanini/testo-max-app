@@ -10,7 +10,7 @@ export const profileSchema = z.object({
   minutes: z.number().int().min(10).max(90),
   wakeTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   sleepTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  diet: z.enum(['variada', 'vegetariana', 'vegana', 'mediterranea']),
+  diet: z.enum(['variada', 'carnivora', 'vegetariana', 'vegana', 'mediterranea']),
   timezone: z.string().refine(value => { try { new Intl.DateTimeFormat('pt-BR', {timeZone: value}); return true } catch { return false } }, 'Fuso horário inválido.'),
   onboarded: z.boolean(),
   allergies: z.array(z.enum(['gluten','leite','ovos','soja','amendoim','castanhas','peixe','crustaceos','gergelim'])).default([]),
@@ -20,6 +20,12 @@ export const profileSchema = z.object({
   location: z.enum(['casa','academia','ar-livre']).default('casa'),
   activityPeriod: z.enum(['manha','tarde','noite']).default('manha'),
   sleepQuality: z.enum(['regular','irregular']).default('irregular'),
+  age: z.number().int().min(18, 'Informe uma idade a partir de 18 anos.').max(100, 'Informe uma idade de até 100 anos.').nullable().default(null),
+  weightKg: z.number().min(35, 'Informe um peso a partir de 35 kg.').max(300, 'Informe um peso de até 300 kg.').nullable().default(null),
+  testosteroneReason: z.enum(['exame_alterado','sintomas','performance','curiosidade','prefiro_nao_responder']).default('prefiro_nao_responder'),
+  perceivedChanges: z.array(z.enum(['energia','libido','erecao','forca','humor','sono','peso'])).default([]),
+  mainConcern: z.enum(['saude','sexual','energia','forca','peso','constancia','prefiro_nao_responder']).default('prefiro_nao_responder'),
+  wakeFeeling: z.enum(['descansado','variavel','cansado','prefiro_nao_responder']).default('prefiro_nao_responder'),
   weeklyGoal: z.number().int().min(1).max(7).default(4),
 })
 export type Profile = z.infer<typeof profileSchema>
@@ -27,6 +33,8 @@ export const exerciseSchema = z.object({ name: z.string(), sets: z.string(), rep
 export const activitySchema = z.object({
   id: z.string(), templateId: z.string(), date: z.string(), title: z.string(), subtitle: z.string(),
   category: categorySchema, icon: z.string(), time: z.string(), minutes: z.number(),
+  role: z.enum(['habito','treino','cardio','alimentacao','sono']).optional(),
+  mealId: z.string().optional(),
   done: z.boolean(), editable: z.boolean(), demo: z.boolean(), instructions: z.array(z.string()),
   exercises: z.array(exerciseSchema),
   journeyDay: z.number().int().min(1).max(120).optional(),
@@ -75,7 +83,7 @@ export type Allergen = Profile['allergies'][number]
 export type MealSlot = NonNullable<Meal['slot']>
 export interface Recipe {
   id: string; name: string; slots: MealSlot[]; minutes: number; servings: number;
-  diet: 'vegana' | 'vegetariana' | 'variada'; economical: boolean;
+  diet: 'vegana' | 'vegetariana' | 'variada' | 'carnivora'; economical: boolean;
   ingredients: Ingredient[]; allergens: Allergen[]; steps: string[]; tags: string[];
 }
 export interface Chapter {

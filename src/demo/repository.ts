@@ -18,17 +18,28 @@ export function prepareWorkspace(state:Workspace,today:string):Workspace {
   const journey=state.journey
   journey.unlockedThrough=Math.max(journey.unlockedThrough,journeyDay(journey.startDate,today))
   state.phases=chapters.map(c=>({id:String(c.id),name:c.name,description:c.objective,current:daysBetween(journey.startDate,today)>=c.start-1&&daysBetween(journey.startDate,today)<=c.end-1}))
-  const activityIds = new Set(state.activities.map(a=>a.id))
+  const activityById = new Map(state.activities.map(a=>[a.id,a]))
   const mealIds = new Set(state.meals.map(m=>m.id))
   for (const protocol of protocols) {
     const date=addDays(journey.startDate,protocol.day-1)
-    for (const a of personalizedMissions(protocol,state.profile,date)) if (!activityIds.has(a.id)) state.activities.push(a)
-    for (const meal of mealsForDay(protocol.day,date,state.profile)) if (!mealIds.has(meal.id)) state.meals.push(meal)
+    for (const meal of mealsForDay(protocol.day,date,state.profile)) if (!mealIds.has(meal.id)) {state.meals.push(meal);mealIds.add(meal.id)}
+    const plannedMeals=state.meals.filter(meal=>meal.date===date && meal.recipeId)
+    for (const generated of personalizedMissions(protocol,state.profile,date,plannedMeals)) {
+      const existing=activityById.get(generated.id)
+      // New steps must not reopen days completed under an earlier version of the plan.
+      if (!existing && date<today && ['journey:cardio','journey:food:breakfast','journey:food:dinner'].includes(generated.templateId)) continue
+      if (!existing) {state.activities.push(generated);activityById.set(generated.id,generated)}
+      else if (!existing.done && existing.date>=today) Object.assign(existing,{...generated,time:existing.time})
+    }
   }
   for (let offset=0;offset<7;offset++) {
     const date=addDays(today,offset)
     for(const meal of mealsForDay(daysBetween(journey.startDate,date)+1,date,state.profile)) if (!state.meals.some(m=>m.id===meal.id)) state.meals.push(meal)
   }
+  // O bônus de compras é entregue pronto: sempre acompanha os próximos sete
+  // dias do cardápio que foi filtrado pelas respostas alimentares do perfil.
+  state.shoppingRange={start:today,days:7}
+  refreshGroceries(state)
   for(const id of earnedAchievements(state,today)) if (!journey.achievements.some(a=>a.id===id)) journey.achievements.push({id,earnedOn:today})
   return state
 }
@@ -54,12 +65,17 @@ export function applyAction(state:Workspace,action:Action,today:string):Workspac
     case 'activity': {
       const a=state.activities.find(item=>item.id===action.id)
       if(!a || !canExecute(a,state,today)) throw new Error('Este protocolo ainda não está disponível. Ele será liberado na data indicada.')
-      a.done=action.done;break
+      a.done=action.done
+      const linkedMeal=state.meals.find(meal=>meal.id===a.mealId)
+      if(linkedMeal)linkedMeal.done=action.done
+      break
     }
     case 'meal': {
       const meal=state.meals.find(m=>m.id===action.id)
       if(!meal || meal.date>today) throw new Error('Você pode planejar esta refeição agora e registrá-la na data indicada.')
-      meal.done=action.done;break
+      meal.done=action.done
+      for(const activity of state.activities)if(activity.mealId===meal.id)activity.done=action.done
+      break
     }
     case 'time': {
       const a=state.activities.find(item=>item.id===action.id)

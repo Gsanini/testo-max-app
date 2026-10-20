@@ -110,9 +110,17 @@ const mediterraneanMeals: MealTemplate[] = [
     steps: ['Higienize os morangos e sirva com o iogurte.'], substitutions: ['Troque os morangos por kiwi.']}),
 ]
 
+const carnivoreMeals: MealTemplate[] = [
+  meal({templateId:'breakfast',recipeId:'ovos-manteiga',slot:'breakfast',title:'Café da manhã',description:'Ovos mexidos na manteiga',time:'07:30',image:'/images/breakfast.jpg',ingredients:[{name:'Ovo',quantity:3,unit:'un',category:'Proteínas'},{name:'Manteiga',quantity:8,unit:'g',category:'Laticínios'}],steps:['Derreta a manteiga.','Mexa os ovos até ficarem completamente firmes.'],substitutions:[]}),
+  meal({templateId:'lunch',recipeId:'hamburguer-caseiro',slot:'lunch',title:'Almoço',description:'Hambúrguer caseiro',time:'12:30',image:'/images/lunch.jpg',ingredients:[{name:'Carne moída bovina crua',quantity:200,unit:'g',category:'Proteínas'}],steps:['Modele dois discos.','Cozinhe até o centro atingir 71 °C.'],substitutions:[]}),
+  meal({templateId:'snack',recipeId:'iogurte-natural-simples',slot:'snack',title:'Lanche',description:'Iogurte natural sem açúcar',time:'16:00',image:'/images/snack.jpg',ingredients:[{name:'Iogurte natural',quantity:170,unit:'g',category:'Laticínios'}],steps:['Sirva gelado e confira os ingredientes no rótulo.'],substitutions:[]}),
+  meal({templateId:'dinner',recipeId:'frango-manteiga',slot:'dinner',title:'Jantar',description:'Peito de frango na manteiga',time:'19:30',image:'/images/dinner.jpg',ingredients:[{name:'Peito de frango cru',quantity:200,unit:'g',category:'Proteínas'},{name:'Manteiga',quantity:8,unit:'g',category:'Laticínios'}],steps:['Cozinhe o frango na manteiga.','Confirme 74 °C no centro.'],substitutions:[]}),
+]
+
 export const mealTemplates = variedMeals
 const mealPlans: Record<Profile['diet'], MealTemplate[]> = {
   variada: variedMeals,
+  carnivora: carnivoreMeals,
   vegetariana: vegetarianMeals,
   vegana: veganMeals,
   mediterranea: mediterraneanMeals,

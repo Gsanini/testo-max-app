@@ -1,5 +1,6 @@
-import type { Activity, Category, Chapter, Profile, Protocol } from '@/domain/types'
+import type { Activity, Category, Chapter, Meal, Profile, Protocol } from '@/domain/types'
 import { weekday } from '@/domain/dates'
+import { cardioStep, dailyHabit, dailyHabitMinutes, exercises, recoveryStep, sleepHabit, strengthPlans, type ExerciseId, type WellnessStep } from './wellness'
 
 export const chapters: Chapter[] = [
   {id:1,name:'Despertar',start:1,end:30,intro:'Toda mudança começa com um passo que cabe na vida real.',objective:'Encontrar pequenos hábitos que você consegue repetir.',preview:'Você vai aprender a organizar refeições para os dias mais corridos.',symbol:'sun',color:'#ff8b80',milestones:['7 dias: reconhecer seu ritmo','15 dias: experimentar alternativas','30 dias: escolher o que manter']},
@@ -137,58 +138,76 @@ export const protocols: Protocol[] = chaptersContent.flatMap((chapter, index) =>
   return {day:index*30+offset+1, chapter:index+1,title,focus,theme,lesson:chapters[index]!.objective}
 }))
 
-type MissionText = {title:string; how:string; purpose:string; alternative:string}
-const routine: MissionText[] = [
-  {title:'Escolher seu próximo passo',how:'Olhe a agenda e escolha em qual intervalo fará uma missão de hoje.',purpose:'Uma decisão concreta ajuda a começar.',alternative:'Se a agenda estiver incerta, escolha apenas a menor missão.'},
-  {title:'Preparar um lembrete',how:'Deixe uma nota ou objeto visível no lugar em que fará sua próxima ação.',purpose:'O ambiente pode ajudar a lembrar da sua intenção.',alternative:'Associe a missão a uma atividade que já faz, como o café da manhã.'},
-  {title:'Abrir espaço para uma pausa',how:'Feche uma tarefa, afaste as distrações e fique alguns minutos sem começar outra.',purpose:'Criar um intervalo torna a rotina menos automática.',alternative:'Faça uma pausa de um minuto sentado em um local confortável.'},
-  {title:'Reconhecer uma escolha',how:'Anote uma ação que funcionou e o que tornou seu começo mais fácil.',purpose:'Observar o que funciona ajuda a decidir o que repetir.',alternative:'Diga para si uma ação concreta que conseguiu fazer.'},
-  {title:'Organizar uma prioridade',how:'Escolha uma prioridade para hoje e tire da lista uma exigência que pode esperar.',purpose:'Um plano possível deixa espaço para imprevistos.',alternative:'Escolha apenas a próxima ação, sem planejar o dia inteiro.'},
-  {title:'Planejar sua alternativa',how:'Veja a próxima missão e escolha sua versão alternativa caso o plano mude.',purpose:'Ter outra opção facilita a continuidade.',alternative:'Use a alternativa descrita na própria missão.'},
-  {title:'Revisar a semana',how:'Abra Progresso, observe seus registros e escolha um hábito para a próxima semana.',purpose:'A revisão transforma participação em aprendizado.',alternative:'Lembre de uma ação desta semana que gostaria de repetir.'},
-]
-const foodMissions: MissionText[] = [
-  {title:'Escolher a próxima refeição',how:'Abra Alimentação, confira os ingredientes da próxima refeição e troque se necessário.',purpose:'Antecipar uma escolha reduz decisões de última hora.',alternative:'Escolha uma opção rápida que use ingredientes que você já tem.'},
-  {title:'Conferir a despensa',how:'Veja dois ingredientes que já tem e marque os itens disponíveis na lista de compras.',purpose:'Usar o que está disponível simplifica o planejamento.',alternative:'Confira apenas um ingrediente da próxima receita.'},
-  {title:'Separar um lanche possível',how:'Escolha um lanche compatível no cardápio e deixe os ingredientes separados.',purpose:'Uma opção planejada ajuda quando o dia fica corrido.',alternative:'Escolha uma fruta que você possa consumir e tenha disponível.'},
-  {title:'Conhecer uma receita',how:'Leia ingredientes e preparo de uma receita compatível antes de decidir prepará-la.',purpose:'Conhecer as etapas ajuda a estimar o trabalho da cozinha.',alternative:'Reutilize uma receita que você já conhece.'},
-  {title:'Ajustar suas compras',how:'Abra a lista da semana, confira quantidades e mantenha somente o que precisa comprar.',purpose:'A lista aproxima o cardápio da sua rotina e orçamento.',alternative:'Anote somente o ingrediente que falta para a próxima refeição.'},
-  {title:'Experimentar uma combinação',how:'Compare duas opções compatíveis e escolha uma combinação que desperte sua curiosidade.',purpose:'Variar combinações amplia seu repertório de refeições.',alternative:'Mantenha uma refeição conhecida e mude só a apresentação.'},
-  {title:'Preparar a semana possível',how:'Veja as refeições dos próximos dias e use Trocar refeição para ajustar aos compromissos.',purpose:'O planejamento pode se adaptar aos dias mais ocupados.',alternative:'Organize apenas as refeições de amanhã.'},
-]
-const sleepMissions: MissionText[] = [
-  {title:'Encerrar as tarefas',how:'Anote uma pendência de amanhã e encerre as tarefas que podem esperar.',purpose:'Um encerramento claro cria espaço para desacelerar.',alternative:'Deixe apenas uma nota com a primeira tarefa de amanhã.'},
-  {title:'Preparar seu ambiente',how:'Organize o local de descanso e ajuste luz e ruídos conforme o que for possível.',purpose:'Um ambiente confortável facilita sua rotina de descanso.',alternative:'Faça apenas um ajuste, como retirar objetos da cama.'},
-  {title:'Uma pausa sem tela',how:'Escolha uma leitura em papel, uma música tranquila ou alguns minutos de silêncio.',purpose:'Experimentar um ritual ajuda a encontrar sua forma de desacelerar.',alternative:'Afaste o aparelho por um minuto e sente-se confortavelmente.'},
-  {title:'Deixar amanhã preparado',how:'Separe um item que usará amanhã e deixe a próxima decisão anotada.',purpose:'Resolver uma pequena pendência pode simplificar o fim do dia.',alternative:'Anote uma única prioridade para amanhã.'},
-]
 export function shiftTime(time: string, minutes: number) {
   const [h,m] = time.split(':').map(Number)
   const total = ((h!*60 + m! + minutes)%1440+1440)%1440
   return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`
 }
-export function personalizedMissions(protocol: Protocol, profile: Profile, date: string): Activity[] {
+export function strengthWeekdays(profile: Profile) {
+  const selected: number[] = []
+  for (const day of [1,2,3,4,5,6,0]) {
+    if (!profile.trainingDays.includes(day) || selected.length === 3) continue
+    if (selected.some(previous => (previous+1)%7 === day || (day+1)%7 === previous)) continue
+    selected.push(day)
+  }
+  return selected
+}
+
+const zincFoods = new Set(['Feijão cozido','Lentilha cozida','Grão-de-bico cozido','Sardinha em conserva','Atum em conserva','Filé de peixe','Ovo','Amendoim sem sal','Castanha-de-caju','Arroz integral cozido'])
+
+function exerciseDetails(id:ExerciseId,profile:Profile,motionTime:number) {
+  const move = exercises[id]
+  const sets = motionTime < 12 || profile.experience === 'iniciante' ? 1 : profile.experience === 'avancado' ? 3 : 2
+  return {name:profile.location === 'academia' ? move.gym : move.home,sets:String(sets),reps:'6 a 10',rest:'30 a 60 s',note:move.note}
+}
+
+export function personalizedMissions(protocol: Protocol, profile: Profile, date: string, plannedMeals: Meal[] = []): Activity[] {
   const n = protocol.day-1
-  const movingDay = profile.trainingDays.includes(weekday(date))
-  const motionTime = movingDay ? Math.min(profile.experience === 'iniciante' ? 15 : 35, Math.floor(profile.minutes*0.5)) : 2
-  const foodTime = Math.max(2, Math.floor(profile.minutes*0.2))
-  const routineTime = Math.max(2,Math.floor(profile.minutes*0.15))
-  const sleepTime = Math.max(1,Math.min(10,profile.minutes-motionTime-foodTime-routineTime))
-  const place = profile.location === 'academia' ? 'na academia' : profile.location === 'ar-livre' ? 'em um local ao ar livre seguro' : 'em casa, num espaço livre de obstáculos'
-  const movement: MissionText = movingDay ? {
-    title:['Seu momento de movimento','Movimentar no seu ritmo','Uma pausa em movimento'][n%3]!,
-    how:profile.experience === 'iniciante' ? `Reserve ${motionTime} minutos ${place} para caminhar ou mudar de posição com conforto. Comece devagar e faça pausas quando precisar.` : `Reserve ${motionTime} minutos ${place} para uma atividade que já conhece e considera confortável. Se possui um plano orientado, siga as adaptações desse plano.`,
-    purpose:'Criar um horário de participação. A intensidade não aumenta ao avançar de capítulo.',
-    alternative:'Faça uma pausa curta para mudar de posição ou movimentar-se confortavelmente sentado. Pare se houver dor ou mal-estar.',
-  } : {title:'Pausa de recuperação',how:'Neste dia sem atividade planejada, encontre uma posição confortável e faça uma pequena pausa entre tarefas.',purpose:'O descanso também tem espaço na rotina.',alternative:'Faça a pausa sentado, sem precisar realizar exercícios.'}
-  const rows: {key:string; text:MissionText; category:Category; icon:string; minutes:number; time:string}[] = [
-    {key:'routine',text:routine[n%routine.length]!,category:'bem-estar',icon:'clipboard',minutes:routineTime,time:profile.wakeTime},
-    {key:'movement',text:movement,category:'movimento',icon:movingDay?'stretch':'heart',minutes:motionTime,time:profile.activityPeriod==='manha'?shiftTime(profile.wakeTime,60):profile.activityPeriod==='tarde'?'15:00':shiftTime(profile.sleepTime,-120)},
-    {key:'food',text:foodMissions[(n+Math.floor(n/30))%foodMissions.length]!,category:'alimentacao',icon:'utensils',minutes:foodTime,time:profile.activityPeriod==='manha'?shiftTime(profile.wakeTime,30):'12:00'},
-    {key:'sleep',text:sleepMissions[(n+Math.floor(n/7))%sleepMissions.length]!,category:'sono',icon:'moon',minutes:sleepTime,time:profile.sleepTime},
+  const strengthDay = strengthWeekdays(profile).includes(weekday(date))
+  const motionTime = strengthDay ? Math.min(profile.experience==='iniciante'?15:35,Math.max(4,Math.floor(profile.minutes*.42))) : 2
+  const habitIndex=(n+Math.floor(n/12))%dailyHabitMinutes.length
+  const routineTime = Math.min(dailyHabitMinutes[habitIndex]!,Math.max(1,profile.minutes-motionTime-7))
+  const remainingTime=Math.max(3,profile.minutes-motionTime-routineTime)
+  const sleepTime=Math.min(10,Math.max(1,remainingTime-2))
+  const cardioTime=Math.max(2,remainingTime-sleepTime)
+  const chosen = strengthPlans[(n+Math.floor(n/12))%strengthPlans.length]!
+  const moves = strengthDay ? chosen.moves.slice(0,motionTime<8?1:motionTime<14?2:3).map(id=>exerciseDetails(id,profile,motionTime)) : []
+  const place = profile.location === 'academia' ? 'na academia' : profile.location === 'ar-livre' ? 'em local plano e seguro ao ar livre' : 'em casa, perto de um apoio estável'
+  const workout = strengthDay ? {
+    title:chosen.title,
+    how:`Reserve ${motionTime} minutos ${place}. Comece com movimentos leves e faça os exercícios abaixo com carga confortável, sem prender a respiração.`,
+    purpose:'Sessões de força distribuídas na semana ajudam a manter músculos e capacidade funcional.',
+    alternative:'Reduza a amplitude ou use a versão sem carga. Se estiver dolorido ou indisposto, escolha mobilidade leve ou descanso.',
+  } : recoveryStep(protocol.day,motionTime)
+  const mealStep = (slot:'breakfast'|'lunch'|'dinner',label:string) => {
+    const planned = plannedMeals.find(meal=>meal.slot===slot)
+    const zincIngredient = planned?.ingredients.find(ingredient=>zincFoods.has(ingredient.name))
+    return {planned,text:{
+      title:planned ? `${label}: ${planned.description}` : `${label}: escolha uma opção`,
+      how:planned ? `Confira em Alimentação a receita de ${planned.description}, seus ingredientes e preparo. Troque a receita se precisar.` : `Abra Alimentação e escolha uma opção para ${label.toLocaleLowerCase('pt-BR')} compatível com suas preferências.`,
+      purpose:zincIngredient ? `${zincIngredient.name} contribui com zinco para uma alimentação adequada. Nenhum alimento isolado garante aumento de testosterona.` : 'Uma alimentação variada ajuda a obter nutrientes sem depender de um alimento isolado.',
+      alternative:'Use outra receita compatível do cardápio ou alimentos que já costuma consumir. Se não houver opção compatível, revise suas preferências.',
+    }}
+  }
+  const breakfast=mealStep('breakfast','Café da manhã')
+  const lunch=mealStep('lunch','Almoço')
+  const dinner=mealStep('dinner','Jantar')
+  const moveTime = profile.activityPeriod==='manha' ? shiftTime(profile.wakeTime,60) : profile.activityPeriod==='tarde' ? '15:00' : shiftTime(profile.sleepTime,-240)
+  const habitOffsets=[0,180,-30,240,300,0,-60,-180,-60,330,60,-45]
+  const routineClock=habitOffsets[habitIndex]!<0?shiftTime(profile.sleepTime,habitOffsets[habitIndex]!):shiftTime(profile.wakeTime,habitOffsets[habitIndex]!)
+  const routine=dailyHabit(habitIndex+1,routineTime,routineClock)
+  const sleep=sleepHabit((n+Math.floor(n/8))%8+1,sleepTime,profile)
+  const rows: {key:string; role:NonNullable<Activity['role']>; text:WellnessStep; category:Category; icon:string; minutes:number; time:string; exercises?:Activity['exercises']; mealId?:string; done?:boolean}[] = [
+    {key:'food:breakfast',role:'alimentacao',text:breakfast.text,category:'alimentacao',icon:'utensils',minutes:0,time:breakfast.planned?.time??shiftTime(profile.wakeTime,30),mealId:breakfast.planned?.id,done:breakfast.planned?.done},
+    {key:'routine',role:'habito',text:routine,category:'bem-estar',icon:'sun',minutes:routineTime,time:routineClock},
+    {key:'movement',role:'treino',text:workout,category:'movimento',icon:strengthDay?'dumbbell':'stretch',minutes:motionTime,time:moveTime,exercises:moves},
+    {key:'food',role:'alimentacao',text:lunch.text,category:'alimentacao',icon:'utensils',minutes:0,time:lunch.planned?.time??shiftTime(profile.wakeTime,330),mealId:lunch.planned?.id,done:lunch.planned?.done},
+    {key:'cardio',role:'cardio',text:cardioStep(protocol.day,profile.location,cardioTime),category:'movimento',icon:'heart',minutes:cardioTime,time:shiftTime(moveTime,strengthDay?motionTime+15:30)},
+    {key:'food:dinner',role:'alimentacao',text:dinner.text,category:'alimentacao',icon:'utensils',minutes:0,time:dinner.planned?.time??shiftTime(profile.sleepTime,-150),mealId:dinner.planned?.id,done:dinner.planned?.done},
+    {key:'sleep',role:'sono',text:sleep,category:'sono',icon:'moon',minutes:sleepTime,time:sleep.time},
   ]
-  return rows.map(row => ({id:`journey:${protocol.day}:${row.key}`,templateId:`journey:${row.key}`,journeyDay:protocol.day,date,title:row.text.title,subtitle:row.text.purpose,category:row.category,icon:row.icon,time:row.time,minutes:row.minutes,done:false,editable:true,demo:false,exercises:[],
-    instructions:[row.text.how,...(row.category===protocol.theme?[`Foco do dia: ${protocol.focus}`]:[]),...(row.category==='sono'&&profile.sleepQuality==='irregular'?['Use este horário como um lembrete flexível. Ajuste-o se os seus compromissos mudarem.']:[])],
+  return rows.map(row => ({id:`journey:${protocol.day}:${row.key}`,templateId:`journey:${row.key}`,journeyDay:protocol.day,date,title:row.text.title,subtitle:row.text.purpose,category:row.category,role:row.role,mealId:row.mealId,icon:row.icon,time:row.time,minutes:row.minutes,done:row.done??false,editable:false,demo:false,exercises:row.exercises??[],
+    instructions:[row.text.how,...(row.role==='sono'&&profile.sleepQuality==='irregular'?[`Mesmo nos dias irregulares, use ${shiftTime(profile.wakeTime,-420)} como limite para garantir 7 h antes de acordar às ${profile.wakeTime}.`]:[])],
     purpose:row.text.purpose,alternative:row.text.alternative,
   }))
 }

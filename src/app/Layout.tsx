@@ -6,29 +6,29 @@ import {
   ChevronRight,
   ClipboardList,
   Home,
+  Gift,
   RefreshCw,
   Sparkles,
   UserRound,
   Utensils,
   X,
 } from "lucide-react";
-import { useAuth, useWorkspace } from "./providers";
+import { useWorkspace } from "./providers";
 import { Brand } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { usePwa } from "@/features/pwa/usePwa";
-import { formatDate } from "@/domain/dates";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { to: "/", title: "Hoje", icon: Home, end: true },
   { to: "/jornada", title: "Jornada", icon: ClipboardList },
   { to: "/alimentacao", title: "Alimentação", icon: Utensils },
+  { to: "/bonus", title: "Bônus", icon: Gift },
   { to: "/progresso", title: "Progresso", icon: BarChart3 },
   { to: "/perfil", title: "Perfil", icon: UserRound },
 ];
 export default function Layout() {
-  const { today, busy, feedback, dismiss, retry } = useWorkspace();
-  const { online } = useAuth();
+  const { busy, feedback, dismiss, retry } = useWorkspace();
   const location = useLocation();
   const pwa = usePwa();
   const current = [...navigation]
@@ -88,41 +88,6 @@ export default function Layout() {
         </div>
       </aside>
       <div className='main-shell'>
-        <header className='topbar'>
-          <div className='desktop-breadcrumb'>
-            Meu espaço <ChevronRight size={13} />
-            <strong>{current?.title ?? "Hoje"}</strong>
-          </div>
-          <Link to='/' className='mobile-brand' aria-label='TestoMAX início'>
-            <Brand small />
-          </Link>
-          <div className='topbar-right'>
-            <span
-              className={cn("sync-indicator", feedback?.error && "sync-error")}
-            >
-              <span />
-              {busy
-                ? "Salvando…"
-                : feedback?.error
-                  ? "Falha ao salvar"
-                  : online
-                    ? "Salvo neste dispositivo"
-                    : "Offline · salvo localmente"}
-            </span>
-            <span className='topbar-divider' />
-            <span className='topbar-date'>
-              {formatDate(today, { weekday: "long" })}
-            </span>
-            <Link
-              to='/perfil'
-              className='avatar topbar-avatar'
-              aria-label='Abrir meu perfil'
-            >
-              <UserRound size={17} />
-            </Link>
-          </div>
-        </header>
-
         {pwa.updateAvailable && (
           <div className='update-banner'>
             <span>Uma nova versão está disponível.</span>
@@ -142,7 +107,7 @@ export default function Layout() {
         </main>
       </div>
       <nav className='bottom-nav' aria-label='Navegação principal no celular'>
-        {navigation.filter(item => item.to !== '/perfil').map((item) => (
+        {navigation.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

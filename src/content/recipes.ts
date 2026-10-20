@@ -23,6 +23,9 @@ export const foods = {
   tofu: food('Tofu','Proteínas',['soja']), egg: food('Ovo','Proteínas',['ovos']),
   chicken: food('Frango cozido desfiado','Proteínas'), sardine: food('Sardinha em conserva','Proteínas',['peixe']),
   tuna: food('Atum em conserva','Proteínas',['peixe']), fish: food('Filé de peixe','Proteínas',['peixe']),
+  groundBeef: food('Carne moída bovina crua','Proteínas'), steak: food('Bife bovino cru','Proteínas'),
+  porkLoin: food('Lombo suíno cru','Proteínas'), chickenBreast: food('Peito de frango cru','Proteínas'),
+  chickenThigh: food('Sobrecoxa de frango crua','Proteínas'), butter: food('Manteiga','Laticínios',['leite']),
   yogurt: food('Iogurte natural','Laticínios',['leite']), milk: food('Leite','Laticínios',['leite']),
   cheese: food('Queijo branco','Laticínios',['leite']), ricotta: food('Ricota','Laticínios',['leite']),
   peanuts: food('Amendoim sem sal','Oleaginosas',['amendoim']), nuts: food('Castanha-de-caju','Oleaginosas',['castanhas']),
@@ -36,7 +39,7 @@ function recipe(id: string, name: string, slots: MealSlot[], minutes: number, di
   return {id, name, slots, minutes, servings: 1, diet, economical,
     ingredients: parts.map(([key, quantity, unit]) => ({name: foods[key].name, category: foods[key].category, quantity, unit})),
     allergens: [...new Set(parts.flatMap(([key]) => foods[key].allergens))], steps,
-    tags: [minutes <= 15 ? 'Rápida' : 'Para cozinhar', economical ? 'Econômica' : 'Mais variedade', diet === 'vegana' ? 'Vegetal' : diet === 'vegetariana' ? 'Vegetariana' : 'Variada'],
+    tags: [minutes <= 15 ? 'Rápida' : 'Para cozinhar', parts.length <= 2 ? 'Poucos ingredientes' : 'Refeição completa', economical ? 'Econômica' : 'Mais variedade', diet === 'vegana' ? 'Vegetal' : diet === 'vegetariana' ? 'Vegetariana' : diet === 'carnivora' ? 'Carnívora' : 'Variada'],
   }
 }
 const breakfast: MealSlot[] = ['breakfast','snack']
@@ -110,6 +113,24 @@ export const recipes: Recipe[] = [
   recipe('sanduiche-grao','Sanduíche de grão-de-bico',main,10,'vegana',[['bread',2,'un'],['chickpeas',120,'g'],['carrot',60,'g'],['lemon',0.5,'un']],['Amasse o grão-de-bico já cozido com limão.','Lave e rale a cenoura. Misture à pasta e recheie o pão.']),
   recipe('salada-beterraba','Salada de beterraba e feijão',main,10,'vegana',[['beans',150,'g'],['beet',100,'g'],['cornCooked',80,'g'],['oil',5,'ml']],['Corte a beterraba já cozida.','Misture com feijão e milho já cozidos e escorridos. Acrescente azeite.']),
   recipe('tapioca-grao','Tapioca com pasta de grão-de-bico',main,10,'vegana',[['tapioca',70,'g'],['chickpeas',100,'g'],['tomato',1,'un'],['lemon',0.5,'un']],['Amasse grão-de-bico já cozido com limão. Lave e pique o tomate.','Espalhe a goma em frigideira aquecida e vire quando unir.','Recheie com pasta e tomate e dobre.']),
+
+  // Plano carnívoro: preparos diretos, com um ou dois ingredientes principais.
+  recipe('carne-moida-simples','Carne moída na frigideira',['breakfast','lunch','snack','dinner'],10,'carnivora',[['groundBeef',180,'g']],['Coloque a carne em uma frigideira aquecida e solte os pedaços com uma espátula.','Cozinhe até o centro atingir 71 °C e não restarem partes cruas.']),
+  recipe('ovos-manteiga','Ovos mexidos na manteiga',breakfast,8,'carnivora',[['egg',3,'un'],['butter',8,'g']],['Derreta a manteiga em fogo baixo.','Junte os ovos batidos e mexa até clara e gema ficarem completamente firmes.']),
+  recipe('omelete-queijo-carnivora','Omelete de queijo',breakfast,10,'carnivora',[['egg',3,'un'],['cheese',40,'g']],['Bata os ovos e despeje em uma frigideira aquecida.','Acrescente o queijo, dobre e cozinhe até os ovos ficarem completamente firmes.']),
+  recipe('ovos-cozidos-queijo','Ovos cozidos com queijo',breakfast,12,'carnivora',[['egg',3,'un'],['cheese',40,'g']],['Cubra os ovos com água e cozinhe por cerca de 10 minutos após levantar fervura.','Resfrie, descasque e sirva com o queijo.']),
+  recipe('sardinha-ovos','Sardinha com ovos mexidos',breakfast,10,'carnivora',[['sardine',100,'g'],['egg',2,'un']],['Escorra a sardinha e confira se há espinhas grandes.','Aqueça com os ovos em uma frigideira, mexendo até os ovos ficarem completamente firmes.']),
+  recipe('atum-ovos','Atum com ovos mexidos',breakfast,10,'carnivora',[['tuna',100,'g'],['egg',2,'un']],['Escorra o atum e coloque em uma frigideira aquecida.','Junte os ovos e mexa até clara e gema ficarem completamente firmes.']),
+  recipe('iogurte-natural-simples','Iogurte natural sem açúcar',breakfast,2,'carnivora',[['yogurt',170,'g']],['Sirva o iogurte gelado e confira no rótulo se não há açúcar ou outros ingredientes adicionados.']),
+  recipe('hamburguer-caseiro','Hambúrguer caseiro',main,12,'carnivora',[['groundBeef',200,'g']],['Modele a carne em dois discos sem compactar demais.','Cozinhe em frigideira quente até o centro atingir 71 °C.']),
+  recipe('bife-ovo','Bife com ovos',main,15,'carnivora',[['steak',180,'g'],['egg',2,'un']],['Cozinhe o bife em frigideira quente até atingir ao menos 63 °C no centro e deixe descansar por 3 minutos.','Na mesma frigideira, cozinhe os ovos até ficarem completamente firmes.']),
+  recipe('frango-manteiga','Peito de frango na manteiga',main,18,'carnivora',[['chickenBreast',200,'g'],['butter',8,'g']],['Corte o peito ao meio para obter filés finos.','Cozinhe na manteiga, virando uma vez, até o centro atingir 74 °C.']),
+  recipe('sobrecoxa-assada','Sobrecoxa assada',main,35,'carnivora',[['chickenThigh',250,'g']],['Coloque a sobrecoxa em uma assadeira ou air fryer.','Asse até dourar e o centro atingir 74 °C.']),
+  recipe('lombo-manteiga','Lombo suíno na frigideira',main,15,'carnivora',[['porkLoin',200,'g'],['butter',8,'g']],['Aqueça a manteiga e cozinhe o lombo dos dois lados.','Retire quando o centro atingir ao menos 63 °C e deixe descansar por 3 minutos.']),
+  recipe('peixe-manteiga','Peixe na manteiga',main,15,'carnivora',[['fish',180,'g'],['butter',8,'g']],['Derreta a manteiga e coloque o filé de peixe.','Cozinhe dos dois lados até o centro atingir 63 °C e retire eventuais espinhas.'],false),
+  recipe('carne-moida-ovos','Carne moída com ovos',main,15,'carnivora',[['groundBeef',150,'g'],['egg',2,'un']],['Cozinhe a carne moída até atingir 71 °C.','Junte os ovos e mexa até ficarem completamente firmes.']),
+  recipe('omelete-carne','Omelete com carne moída',main,15,'carnivora',[['egg',3,'un'],['groundBeef',120,'g']],['Cozinhe a carne até atingir 71 °C e reserve na própria frigideira.','Adicione os ovos batidos, dobre e cozinhe até ficarem completamente firmes.']),
+  recipe('frango-desfiado-ovos','Frango desfiado com ovos',main,10,'carnivora',[['chicken',120,'g'],['egg',2,'un']],['Aqueça completamente o frango já cozido.','Junte os ovos e mexa até clara e gema ficarem completamente firmes.']),
 ]
 
 export const allergenNames: Record<Allergen, string> = {gluten:'Trigo / glúten',leite:'Leite',ovos:'Ovos',soja:'Soja',amendoim:'Amendoim',castanhas:'Castanhas',peixe:'Peixe',crustaceos:'Crustáceos',gergelim:'Gergelim'}

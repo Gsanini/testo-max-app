@@ -4,9 +4,10 @@ import { shiftTime } from '@/content/journey'
 
 export const normalizeIngredient = (text:string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase()
 export function isCompatible(recipe: Recipe, profile: Profile) {
+  if (profile.diet === 'carnivora' && recipe.diet !== 'carnivora') return false
   if (profile.diet === 'vegana' && recipe.diet !== 'vegana') return false
-  if (profile.diet === 'vegetariana' && recipe.diet === 'variada') return false
-  if (profile.diet === 'mediterranea' && recipe.ingredients.some(i => i.name.includes('Frango'))) return false
+  if (profile.diet === 'vegetariana' && (recipe.diet === 'variada' || recipe.diet === 'carnivora')) return false
+  if (profile.diet === 'mediterranea' && (recipe.diet === 'carnivora' || recipe.ingredients.some(i => i.name.includes('Frango')))) return false
   if (recipe.allergens.some(a => profile.allergies.includes(a))) return false
   return !recipe.ingredients.some(i => profile.excludedIngredients.some(excluded => normalizeIngredient(i.name) === normalizeIngredient(excluded)))
 }

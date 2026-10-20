@@ -12,6 +12,7 @@ const ProtocolsPage = lazy(() => import('@/features/protocols/ProtocolsPage'))
 const JourneyPage = lazy(() => import('@/features/journey/JourneyPage'))
 const NutritionPage = lazy(() => import('@/features/nutrition/NutritionPage'))
 const ShoppingPage = lazy(() => import('@/features/nutrition/ShoppingPage'))
+const BonusPage = lazy(() => import('@/features/bonus/BonusPage'))
 const ProgressPage = lazy(() => import('@/features/progress/ProgressPage'))
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'))
 
@@ -21,7 +22,7 @@ function Gate({children}: {children: ReactNode}) {
   return <WorkspaceProvider loading={<Loading/>} errorView={(_error, retry) => <div className="gate-screen"><Brand/><ErrorState retry={retry}/></div>}><OnboardingGate>{children}</OnboardingGate></WorkspaceProvider>
 }
 function OnboardingGate({children}: {children: ReactNode}) {const {data} = useWorkspace(); return data.profile.onboarded ? children : <OnboardingPage/>}
-function RouteFocus() {return <Suspense fallback={<Loading/>}><Routes><Route path="/entrar" element={<AuthPage/>}/><Route element={<Gate><Layout/></Gate>}><Route index element={<TodayPage/>}/><Route path="jornada" element={<JourneyPage/>}/><Route path="protocolos" element={<Navigate to="/jornada" replace/>}/><Route path="historico" element={<ProtocolsPage/>}/><Route path="alimentacao" element={<NutritionPage/>}/><Route path="alimentacao/compras" element={<ShoppingPage/>}/><Route path="progresso" element={<ProgressPage/>}/><Route path="perfil" element={<ProfilePage/>}/></Route><Route path="*" element={<Navigate to="/" replace/>}/></Routes></Suspense>}
+function RouteFocus() {return <Suspense fallback={<Loading/>}><Routes><Route path="/entrar" element={<AuthPage/>}/><Route element={<Gate><Layout/></Gate>}><Route index element={<TodayPage/>}/><Route path="jornada" element={<JourneyPage/>}/><Route path="protocolos" element={<Navigate to="/jornada" replace/>}/><Route path="historico" element={<ProtocolsPage/>}/><Route path="alimentacao" element={<NutritionPage/>}/><Route path="alimentacao/compras" element={<ShoppingPage/>}/><Route path="bonus" element={<BonusPage/>}/><Route path="progresso" element={<ProgressPage/>}/><Route path="perfil" element={<ProfilePage/>}/></Route><Route path="*" element={<Navigate to="/" replace/>}/></Routes></Suspense>}
 class AppBoundary extends Component<{children:ReactNode},{failed:boolean}> {
   state = {failed:false}
   static getDerivedStateFromError() {return {failed:true}}

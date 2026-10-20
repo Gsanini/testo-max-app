@@ -104,17 +104,7 @@ ul,ol {margin: 0; padding: 0; list-style: none;}
 .sidebar-user > svg {color: var(--subtle);}
 .avatar {display: inline-flex; justify-content: center; align-items: center; background: #353136; color: #e0c9c9; border: 1px solid #534044; width: 34px; height: 34px; border-radius: 50%; font-size: 11px; font-weight: 650; flex-shrink: 0;}
 .main-shell {margin-left: 232px; min-height: 100dvh; display: flex; flex-direction: column;}
-.topbar {height: 77px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #24262b; padding: 0 40px; background: #121315;}
-.desktop-breadcrumb {display: flex; align-items: center; gap: 14px; color: #82858e; font-size: 11px;}
-.desktop-breadcrumb strong {color: #c6c8d0; font-weight: 450;}
-.topbar-right {display: flex; align-items: center; gap: 18px;}
-.sync-indicator {font-size: 10px; display: flex; align-items: center; gap: 7px; color: #a9acb4;}
-.sync-indicator > span {width: 5px; height: 5px; background: #89b79b; border-radius: 50%;}
-.sync-error > span {background: #e3a879;}
-.topbar-divider {width: 1px; height: 16px; background: var(--border);}
-.topbar-date {font-size: 11px; color: #91949e; text-transform: capitalize;}
-.topbar-avatar {width: 32px; height: 32px; min-height: 44px; min-width: 44px;}
-.mobile-brand,.bottom-nav {display: none;}
+.bottom-nav {display: none;}
 .update-banner {display: flex; justify-content: center; align-items: center; gap: 12px; background: #24322c; font-size: 12px;}
 .page-content {width: 100%; max-width: 1440px; padding: 37px 40px 28px; margin: 0 auto; animation: appear .25s ease-out;}
 .page-heading {display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 29px;}
@@ -282,7 +272,8 @@ ul,ol {margin: 0; padding: 0; list-style: none;}
 .is-checked .grocery-checkbox:before {background: #bd4148; border-color: #bd4148;}
 .grocery-name {flex: 1; min-width: 0;}
 .grocery-name strong {font-size: 12px; font-weight: 500; display: block; overflow-wrap: anywhere;}
-.grocery-name span {font-size: 10px; color: #9599a5;}
+.grocery-name span {display: block; font-size: 10px; color: #b2b6c1; margin-top: 3px;}
+.grocery-name small {display: block; font-size: 9px; color: #7f8490; line-height: 1.55; margin-top: 3px;}
 .is-checked .grocery-name strong {color: #969aa7; text-decoration: line-through;}
 .grocery-row .icon-button {width: 32px; min-width: 32px;}
 .stats-grid {display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 22px; margin-bottom: 26px;}
@@ -448,7 +439,7 @@ legend {font-size: 12px; color: #c4c8d1; margin-bottom: 11px;}
 @media (min-width: 1600px) {.page-content {padding-top: 45px;}.today-columns {grid-template-columns: minmax(0,1.7fr) minmax(300px,1fr);}.activity-row {min-height: 83px;}.meal-image-button {height: 195px;}}
 @media (max-width: 1200px) {
   .sidebar {width: 208px; padding-left: 14px; padding-right: 14px;}.sidebar .brand {font-size: 25px;}.sidebar-brand {padding: 0 9px;}.main-shell {margin-left: 208px;}
-  .topbar {padding: 0 28px;}.page-content {padding: 29px 28px 24px;}.app-footer {padding-left: 28px; padding-right: 28px;}
+  .page-content {padding: 29px 28px 24px;}.app-footer {padding-left: 28px; padding-right: 28px;}
   .today-columns,.content-columns {gap: 18px; grid-template-columns: minmax(0,1.5fr) minmax(258px,1fr);}.column-stack {gap: 18px;}.panel {padding: 18px;}.next-meal-panel {padding: 18px 18px 0;}.meal-image-button {margin: 0 -18px; width: calc(100% + 36px);}
   .activity-row {gap: 7px;}.activity-symbol {width: 32px;}.activity-detail strong {font-size: 11px;}.activity-detail > span {font-size: 9px;}.activity-time {font-size: 9px;}.panel-heading h2 {font-size: 12px;}.panel-heading h2 svg {width: 16px;}.panel-heading .text-link {font-size: 9px;}
   .focus-main h2 {font-size: 23px;}.focus-card {padding: 26px;}.focus-progress {min-width: 165px;}.focus-main > p {max-width: 340px;}.focus-actions {gap: 13px;}.consistency-summary {align-items: flex-start; flex-direction: column;}.consistency-summary .subtle-badge {display: none;}
@@ -456,14 +447,14 @@ legend {font-size: 12px; color: #c4c8d1; margin-bottom: 11px;}
   .feedback-toast {left: calc(50% + 104px);}.auth-story {padding: 45px;}.stats-grid {gap: 15px;}.stat-card {padding: 18px;}.stat-icon {right: 13px; top: 14px; padding: 8px;}.stat-card > strong {font-size: 32px;}
 }
 @media (max-width: 1023px) {
-  .sidebar {display: none;}.main-shell {margin-left: 0;}.desktop-breadcrumb {display: none;}.mobile-brand {display: inline-flex; min-height: 44px; align-items: center;}.topbar {height: 69px; padding: 0 28px;}
+  .sidebar {display: none;}.main-shell {margin-left: 0;}
   .bottom-nav {position: fixed; display: flex; bottom: 0; left: 0; right: 0; min-height: 72px; padding: 7px 16px calc(7px + env(safe-area-inset-bottom,0px)); background: #17181bf5; border-top: 1px solid #36373f; z-index: 40; backdrop-filter: blur(16px);}
   .bottom-nav a {flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 51px; color: #9196a2; font-size: 10px; border-radius: 8px;}.bottom-nav a.active {color: #f98790;}.bottom-nav a.active:before {content: ''; position: absolute; top: 0; width: 26px; height: 2px; background: #f98790;}
-  .main-shell {padding-bottom: calc(74px + env(safe-area-inset-bottom,0px));}.feedback-toast {left: 50%; bottom: calc(87px + env(safe-area-inset-bottom,0px));}.app-footer {padding-bottom: 15px;}.topbar-avatar {display: none;}.content-columns {grid-template-columns: minmax(0,1.5fr) minmax(270px,1fr);}
+  .main-shell {padding-bottom: calc(74px + env(safe-area-inset-bottom,0px));}.feedback-toast {left: 50%; bottom: calc(87px + env(safe-area-inset-bottom,0px));}.app-footer {padding-bottom: 15px;}.content-columns {grid-template-columns: minmax(0,1.5fr) minmax(270px,1fr);}
   .auth-story {padding: 38px;}.auth-story h1 {font-size: 43px; letter-spacing: -1.8px;}.auth-form-side {padding: 35px 28px 25px;}
 }
 @media (max-width: 700px) {
-  body {font-size: 14px;}.page-content {padding: 26px 20px 20px;}.topbar {padding: 0 20px; height: 66px;}.topbar-date,.topbar-divider {display: none;}.topbar-right {gap: 8px;}.sync-indicator {font-size: 9px;}
+  body {font-size: 14px;}.page-content {padding: 26px 20px 20px;}
   .page-heading {align-items: flex-start; margin-bottom: 23px; gap: 14px; flex-wrap: wrap;}.page-heading h1 {font-size: 30px; letter-spacing: -1px;}.page-heading .eyebrow {font-size: 8px; letter-spacing: 1.55px; margin-bottom: 10px;}.page-heading p {font-size: 12px; line-height: 1.8; margin-top: 7px;}.date-chip {font-size: 9px; padding: 6px 9px; align-self: flex-start; margin-top: 0;}.date-chip svg {width: 13px;}.page-heading:has(.date-chip) {position: relative;}.page-heading .date-chip {position: absolute; top: -2px; right: 0; border: 0; padding: 0; color: #9d9da8;}.page-heading:has(.date-chip) .eyebrow {letter-spacing: 1px; font-size: 7px;}
   .focus-card {padding: 21px; gap: 12px; align-items: flex-start; margin-bottom: 21px; flex-wrap: wrap;}.focus-main {flex-basis: 100%;}.focus-main h2 {font-size: 22px; margin-top: 12px;}.focus-main > p {font-size: 12px; max-width: 100%;}.focus-eyebrow {font-size: 8px;}.focus-actions {gap: 19px; margin-top: 18px;}.focus-actions .button {font-size: 11px; padding: 12px 14px;}.focus-progress {border-top: 1px solid #48404a; width: 100%; flex-direction: row-reverse; justify-content: space-between; padding: 17px 0 0; margin-top: 8px; gap: 15px;}.focus-progress .ring {width: 50px !important; height: 50px !important;}.focus-progress .ring-label > strong {font-size: 12px; letter-spacing: -.2px;}.focus-progress .ring-label small {font-size: 8px; margin-left: 0;}.focus-progress .ring-label > span {display: none;}.focus-progress .ring circle {stroke-width: 8px;}.focus-progress > p {margin: 0; font-size: 11px;}.focus-progress > p strong {color: #e0dbe3;}
   .today-columns,.content-columns {grid-template-columns: 1fr; gap: 21px;}.column-stack {gap: 21px;}.panel {padding: 20px; border-radius: 13px;}.panel-heading h2 {font-size: 14px;}.panel-heading h2 svg {width: 18px;}.panel-heading .text-link {font-size: 10px;}.section-caption {font-size: 10px; margin-bottom: 13px;}.activity-row {gap: 10px; min-height: 80px; padding: 12px 0;}.activity-symbol {width: 35px;}.activity-detail strong {font-size: 12px;}.activity-detail > span {font-size: 10px;}.activity-time {font-size: 10px;}.row-arrow {min-width: 29px; margin-right: -11px;}.completion {margin-right: -8px;}.panel-footnote {font-size: 9px;}

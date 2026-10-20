@@ -54,8 +54,15 @@ export function WorkspaceProvider({children, loading, errorView}: {children: Rea
       const previous = client.getQueryData<Workspace>(key)
       if (previous) {
         const next = structuredClone(previous)
-        if (action.type === 'activity') next.activities = next.activities.map(a => a.id === action.id ? {...a, done: action.done} : a)
-        if (action.type === 'meal') next.meals = next.meals.map(m => m.id === action.id ? {...m, done: action.done} : m)
+        if (action.type === 'activity') {
+          const mealId=next.activities.find(a=>a.id===action.id)?.mealId
+          next.activities = next.activities.map(a => a.id === action.id ? {...a, done: action.done} : a)
+          if(mealId)next.meals=next.meals.map(meal=>meal.id===mealId?{...meal,done:action.done}:meal)
+        }
+        if (action.type === 'meal') {
+          next.meals = next.meals.map(m => m.id === action.id ? {...m, done: action.done} : m)
+          next.activities=next.activities.map(activity=>activity.mealId===action.id?{...activity,done:action.done}:activity)
+        }
         if (action.type === 'time') next.activities = next.activities.map(a => a.id === action.id ? {...a, time: action.time} : a)
         if (action.type === 'groceries') {if (action.replaceGenerated) next.grocery = next.grocery.filter(i => i.personal); for (const item of action.items) {next.grocery = next.grocery.filter(i => i.id !== item.id); next.grocery.push(item)}}
         if (action.type === 'removeGrocery') next.grocery = next.grocery.filter(i => i.id !== action.id)

@@ -5,6 +5,7 @@ import '@fontsource-variable/manrope'
 import './styles.css'
 import './styles-accessibility.css'
 import './styles-journey.css'
+import './styles-daily.css'
 import App from './app/App'
 import { startPwa } from './features/pwa/usePwa'
 
