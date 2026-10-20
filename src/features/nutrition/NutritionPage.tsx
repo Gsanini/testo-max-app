@@ -5,7 +5,6 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  Clock3,
   Search,
   ShoppingBasket,
   Utensils,
@@ -16,13 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import type { Meal, MealSlot, Recipe } from "@/domain/types";
 import { addDays, formatDate } from "@/domain/dates";
+import { daysBetween } from "@/domain/journey";
 import {
   isCompatible,
   recipeForMeal,
   slotNames,
   suitableRecipes,
 } from "@/domain/nutrition";
-import { recipes } from "@/content/recipes";
+import { recipes, recipeById } from "@/content/recipes";
 import { RecipeContent } from "./RecipeContent";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +35,10 @@ export default function NutritionPage() {
   const [swap, setSwap] = useState<Meal | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<MealSlot | "">("");
-  const meals = data.meals.filter((m) => m.recipeId && m.date === date);
+  const meals = data.meals.filter(
+    (m) => m.recipeId && recipeById.has(m.recipeId) && m.date === date,
+  );
+  const selectedDay = daysBetween(data.journey?.startDate??date,date)+1;
   const actual = meals.find((m) => m.id === selected?.id) ?? selected;
   const choices = suitableRecipes(data.profile, category || undefined).filter(
     (r) =>
@@ -45,7 +48,14 @@ export default function NutritionPage() {
   );
   const alternatives = swap
     ? suitableRecipes(data.profile, swap.slot).filter(
-        (r) => r.id !== swap.recipeId,
+        (r) =>
+          r.id !== swap.recipeId &&
+          !data.meals.some(
+            (meal) =>
+              meal.date === swap.date &&
+              meal.id !== swap.id &&
+              meal.recipeId === r.id,
+          ),
       )
     : [];
   return (
@@ -53,7 +63,7 @@ export default function NutritionPage() {
       <PageHeading
         eyebrow='PLANEJAR TAMBÉM É CUIDAR DE VOCÊ'
         title='Alimentação'
-        description='Refeições possíveis, ingredientes conhecidos e espaço para variar.'
+        description='Três refeições por dia durante 120 dias, com as porções indicadas para uma pessoa.'
         action={
           <Button asChild variant='secondary'>
             <Link to='/alimentacao/compras'>
@@ -82,20 +92,8 @@ export default function NutritionPage() {
           Receitas
         </button>
       </div>
-      <p className='nutrition-filter-note'>
-        Opções de até {data.profile.cookMinutes} min ·{" "}
-        {data.profile.budget === "economico"
-          ? "Econômicas"
-          : "Orçamento flexível"}{" "}
-        · Restrições aplicadas <Link to='/perfil'>Editar preferências</Link>
-      </p>
-      {data.profile.diet === "carnivora" && (
-        <div className='inline-notice carnivore-notice' role='note'>
-          <strong>Plano carnívoro selecionado.</strong> As sugestões usam poucos
-          ingredientes e priorizam carnes in natura, ovos e peixes. Por ser um
-          padrão restritivo, ajuste quantidades e duração com um profissional.
-        </div>
-      )}
+      <p className='nutrition-filter-note'>Cardápio de 120 dias · Restrições aplicadas <Link to='/perfil'>Editar preferências</Link></p>
+      <div className='inline-notice' role='note'><strong>Como pesar as porções.</strong> Os pesos de carnes, frango e acompanhamentos são de alimentos prontos para comer. Aveia seca e goma de tapioca hidratada são pesadas antes do preparo. As porções são referências para uma pessoa.</div>
       {tab === "week" ? (
         <>
           <div className='food-week' aria-label='Dias do cardápio'>
@@ -129,12 +127,9 @@ export default function NutritionPage() {
               {meals.filter((m) => m.done).length} de {meals.length} registradas
             </span>
           </div>
-          {meals.length < 4 && (
+          {meals.length < 3 && (
             <div className='inline-notice' role='status'>
-              Não encontramos opções para todos os períodos com a combinação
-              atual de preferências. Seus filtros foram mantidos. Revise tempo e
-              orçamento no perfil ou planeje uma opção compatível fora do
-              catálogo.
+              {selectedDay>120 ? 'O cardápio termina no dia 120.' : 'Uma ou mais refeições planejadas contêm ingredientes marcados nas suas restrições. Revise as preferências antes de seguir o cardápio.'}
             </div>
           )}
           <div className='planned-meals'>
@@ -159,11 +154,9 @@ export default function NutritionPage() {
                         </span>
                       )}
                     </div>
-                    <p>{meal.ingredients.map((i) => i.name).join(" · ")}</p>
+                    <p>{details.sourcePortions}</p>
                     <span className='recipe-meta'>
-                      <Clock3 size={14} />
-                      {details.minutes} min<span>1 porção</span>
-                      {details.economical && <span>Econômica</span>}
+                      <span>1 porção</span><span>Dia {selectedDay} de 120</span>
                     </span>
                     {!isCompatible(details, data.profile) && (
                       <p className='muted'>
@@ -233,7 +226,7 @@ export default function NutritionPage() {
                 onChange={(e) => setCategory(e.target.value as MealSlot | "")}
               >
                 <option value=''>Todas as categorias</option>
-                {Object.entries(slotNames).map(([value, label]) => (
+                {Object.entries(slotNames).filter(([value])=>value!=='snack').map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
@@ -242,8 +235,7 @@ export default function NutritionPage() {
             </label>
           </div>
           <p className='muted recipe-count'>
-            {choices.length} opções para suas preferências · {recipes.length}{" "}
-            receitas no catálogo
+            {choices.length} combinações compatíveis · {recipes.length} combinações no cardápio
           </p>
           {choices.length ? (
             <div className='recipe-library'>
@@ -257,9 +249,7 @@ export default function NutritionPage() {
                     <BookOpen size={23} />
                   </span>
                   <strong>{r.name}</strong>
-                  <span>
-                    {r.minutes} min · {r.economical ? "Econômica" : "Variada"}
-                  </span>
+                  <span>{r.sourcePortions}</span>
                   <small>{r.slots.map((s) => slotNames[s]).join(" · ")}</small>
                   <ChevronRight size={17} />
                 </button>
@@ -275,13 +265,21 @@ export default function NutritionPage() {
       )}
       <p className='food-guidance'>
         Orientações gerais de alimentação e hábitos, sem promessas hormonais.
-        Confira os rótulos e possíveis traços de alergênicos.{" "}
+        Confira os rótulos e possíveis traços de alergênicos. Fontes sobre{" "}
         <a
-          href='https://www.gov.br/saude/pt-br/composicao/saps/promocao-da-saude/guias-alimentares'
+          href='https://ods.od.nih.gov/factsheets/Zinc-HealthProfessional/'
           target='_blank'
           rel='noreferrer'
         >
-          Conheça o Guia Alimentar
+          zinco
+        </a>{" "}
+        e{" "}
+        <a
+          href='https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/'
+          target='_blank'
+          rel='noreferrer'
+        >
+          vitamina D
         </a>
         .
       </p>
@@ -330,8 +328,7 @@ export default function NutritionPage() {
                   <span>
                     <strong>{r.name}</strong>
                     <small>
-                      {r.minutes} min ·{" "}
-                      {r.ingredients.map((i) => i.name).join(", ")}
+                      {r.sourcePortions}
                     </small>
                   </span>
                   <ArrowLeftRight size={18} />
@@ -341,7 +338,7 @@ export default function NutritionPage() {
           ) : (
             <EmptyState
               title='Sem outras opções compatíveis'
-              text='Você pode revisar o tempo de preparo ou o orçamento nas preferências. Suas restrições serão respeitadas.'
+              text='Revise suas restrições no perfil ou consulte outras refeições do cardápio. As restrições informadas serão respeitadas.'
             />
           )}
         </Dialog>

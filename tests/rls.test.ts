@@ -1,6 +1,7 @@
 import {PGlite} from '@electric-sql/pglite'
 import {readFile} from 'node:fs/promises'
 import {afterAll,beforeAll,describe,expect,it} from 'vitest'
+import {z} from 'zod'
 import {workspaceSchema} from '../src/domain/types'
 
 // PostgreSQL real via WASM; auth.uid é a única função Supabase simulada.
@@ -10,7 +11,9 @@ const bob='b0000000-0000-4000-8000-000000000002'
 const blocked='c0000000-0000-4000-8000-000000000003'
 async function user(id:string) {await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated')}
 async function admin() {await db.exec('reset role')}
-async function workspace() {const r=await db.query<{data:unknown}>('select public.load_workspace() as data');return workspaceSchema.parse(r.rows[0]!.data)}
+// These RLS fixtures exercise the dormant SQL backend, whose legacy diet values are not exposed by the app.
+const legacyWorkspaceSchema=workspaceSchema.extend({profile:workspaceSchema.shape.profile.extend({diet:z.enum(['variada','vegetariana'])})})
+async function workspace() {const r=await db.query<{data:unknown}>('select public.load_workspace() as data');return legacyWorkspaceSchema.parse(r.rows[0]!.data)}
 beforeAll(async()=>{
   await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema public,auth to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated,service_role;`)
   for (const path of ['supabase/migrations/202610060001_core.sql','supabase/migrations/202610060002_billing.sql','supabase/seed.sql']) await db.exec(await readFile(path,'utf8'))

@@ -1,18 +1,100 @@
-import type { Activity, Category, Chapter, Meal, Profile, Protocol } from '@/domain/types'
-import { weekday } from '@/domain/dates'
-import { cardioStep, dailyHabit, dailyHabitMinutes, exercises, recoveryStep, sleepHabit, strengthPlans, type ExerciseId, type WellnessStep } from './wellness'
+import type {
+  Activity,
+  Category,
+  Chapter,
+  Meal,
+  Profile,
+  Protocol,
+} from "@/domain/types";
+import { weekday } from "@/domain/dates";
+import { recipeById } from "./recipes";
+import {
+  cardioStep,
+  dailyHabit,
+  dailyHabitMinutes,
+  exercises,
+  recoveryStep,
+  sleepHabit,
+  strengthPlans,
+  type ExerciseId,
+  type WellnessStep,
+} from "./wellness";
 
 export const chapters: Chapter[] = [
-  {id:1,name:'Despertar',start:1,end:30,intro:'Toda mudança começa com um passo que cabe na vida real.',objective:'Encontrar pequenos hábitos que você consegue repetir.',preview:'Você vai aprender a organizar refeições para os dias mais corridos.',symbol:'sun',color:'#ff8b80',milestones:['7 dias: reconhecer seu ritmo','15 dias: experimentar alternativas','30 dias: escolher o que manter']},
-  {id:2,name:'Construir a base',start:31,end:60,intro:'Menos decisões de última hora. Mais espaço para cuidar de você.',objective:'Organizar alimentação, movimento e descanso na sua semana.',preview:'Você vai testar sua rotina em dias diferentes, sem precisar fazer tudo igual.',symbol:'layers',color:'#e6bb79',milestones:['37 dias: preparar uma semana possível','45 dias: montar seu plano B','60 dias: revisar sua base']},
-  {id:3,name:'Ganhar consistência',start:61,end:90,intro:'Consistência também é saber adaptar o caminho.',objective:'Ampliar a variedade e retomar com facilidade após imprevistos.',preview:'No último capítulo, você vai criar seu próprio plano de continuidade.',symbol:'compass',color:'#a9b7f5',milestones:['67 dias: praticar flexibilidade','75 dias: reconhecer padrões','90 dias: repetir o que funciona']},
-  {id:4,name:'Consolidar',start:91,end:120,intro:'O próximo passo já começa a ter a sua assinatura.',objective:'Construir autonomia para continuar depois dos 120 dias.',preview:'Seu histórico continua acessível. Leve os hábitos escolhidos para a próxima etapa.',symbol:'flag',color:'#96ceb8',milestones:['97 dias: escolher seus essenciais','105 dias: organizar a continuidade','120 dias: reconhecer sua construção']},
-]
+  {
+    id: 1,
+    name: "Despertar",
+    start: 1,
+    end: 30,
+    intro: "Toda mudança começa com um passo que cabe na vida real.",
+    objective: "Encontrar pequenos hábitos que você consegue repetir.",
+    preview:
+      "Você vai aprender a organizar refeições para os dias mais corridos.",
+    symbol: "sun",
+    color: "#ff8b80",
+    milestones: [
+      "7 dias: reconhecer seu ritmo",
+      "15 dias: experimentar alternativas",
+      "30 dias: escolher o que manter",
+    ],
+  },
+  {
+    id: 2,
+    name: "Construir a base",
+    start: 31,
+    end: 60,
+    intro: "Menos decisões de última hora. Mais espaço para cuidar de você.",
+    objective: "Organizar alimentação, movimento e descanso na sua semana.",
+    preview:
+      "Você vai testar sua rotina em dias diferentes, sem precisar fazer tudo igual.",
+    symbol: "layers",
+    color: "#e6bb79",
+    milestones: [
+      "37 dias: preparar uma semana possível",
+      "45 dias: montar seu plano B",
+      "60 dias: revisar sua base",
+    ],
+  },
+  {
+    id: 3,
+    name: "Ganhar consistência",
+    start: 61,
+    end: 90,
+    intro: "Consistência também é saber adaptar o caminho.",
+    objective: "Ampliar a variedade e retomar com facilidade após imprevistos.",
+    preview:
+      "No último capítulo, você vai criar seu próprio plano de continuidade.",
+    symbol: "compass",
+    color: "#a9b7f5",
+    milestones: [
+      "67 dias: praticar flexibilidade",
+      "75 dias: reconhecer padrões",
+      "90 dias: repetir o que funciona",
+    ],
+  },
+  {
+    id: 4,
+    name: "Consolidar",
+    start: 91,
+    end: 120,
+    intro: "O próximo passo já começa a ter a sua assinatura.",
+    objective: "Construir autonomia para continuar depois dos 120 dias.",
+    preview:
+      "Seu histórico continua acessível. Leve os hábitos escolhidos para a próxima etapa.",
+    symbol: "flag",
+    color: "#96ceb8",
+    milestones: [
+      "97 dias: escolher seus essenciais",
+      "105 dias: organizar a continuidade",
+      "120 dias: reconhecer sua construção",
+    ],
+  },
+];
 
 // Each row is an editorial day: title | concrete focus | theme. Shared missions below
 // deliberately repeat sustainable habits, while the daily learning context changes.
 const chaptersContent = [
-`Seu ponto de partida|Observe como seu dia acontece e escolha um horário possível.|bem-estar
+  `Seu ponto de partida|Observe como seu dia acontece e escolha um horário possível.|bem-estar
 Uma pausa que cabe|Encontre uma pequena pausa entre dois compromissos.|movimento
 Sua próxima refeição|Confira o que já existe na cozinha antes de planejar.|alimentacao
 Preparar o descanso|Escolha um sinal simples para encerrar as tarefas.|sono
@@ -27,7 +109,7 @@ Mudar de posição|Identifique um intervalo para sair da posição mantida por m
 Pausa com atenção|Faça uma atividade de cada vez durante uma pequena pausa.|bem-estar
 O que funcionou|Escolha dois hábitos da semana que gostaria de repetir.|bem-estar
 Seu plano alternativo|Teste a versão curta de uma missão em um dia ocupado.|bem-estar
-Fruta ao alcance|Separe uma fruta disponível para um lanche prático.|alimentacao
+Café ao alcance|Separe os ingredientes do café da manhã planejado.|alimentacao
 Espaço para se mover|Organize um lugar seguro e livre de obstáculos.|movimento
 Ambiente de descanso|Observe luz, ruídos e objetos que atrapalham seu descanso.|sono
 Compra com intenção|Confira dois ingredientes antes de adicioná-los à lista.|alimentacao
@@ -42,7 +124,7 @@ Sinais da sua rotina|Observe em qual período você encontra mais facilidade par
 Rever sem julgar|Leia os registros da semana e escolha uma mudança pequena.|bem-estar
 Seus três essenciais|Escolha uma ação de alimentação, uma de movimento e uma de descanso.|bem-estar
 Despertar concluído|Registre o que aprendeu sobre o próprio ritmo neste capítulo.|bem-estar`,
-`Uma base para sua semana|Olhe os compromissos dos próximos dias antes de planejar refeições.|alimentacao
+  `Uma base para sua semana|Olhe os compromissos dos próximos dias antes de planejar refeições.|alimentacao
 Inventário da cozinha|Liste o que precisa ser usado primeiro na despensa e geladeira.|alimentacao
 Horário com margem|Deixe alguns minutos livres ao redor de uma atividade planejada.|bem-estar
 Descanso no calendário|Reserve um horário de desaceleração que funcione nesta semana.|sono
@@ -52,9 +134,9 @@ Semana organizada|Compare o planejamento com o que realmente coube no seu dia.|b
 Uma base, dois pratos|Escolha um ingrediente cozido que sirva para duas refeições.|alimentacao
 O caminho mais fácil|Deixe roupa ou espaço de movimento preparados.|movimento
 Rotina de encerramento|Escolha duas ações tranquilas para repetir antes de dormir.|sono
-Lanche para levar|Escolha um lanche que combine com o seu deslocamento.|alimentacao
+Refeição para levar|Confira a refeição do dia e planeje como levá-la com segurança.|alimentacao
 Pausa entre blocos|Separe trabalho ou estudo em blocos com pequenas pausas.|bem-estar
-Variedade no prato|Experimente um vegetal diferente entre as opções compatíveis.|alimentacao
+Variedade no prato|Experimente outro corte de carne, peixe ou preparo de ovos do cardápio.|alimentacao
 Revisão da base|Escolha um obstáculo da semana e uma solução simples.|bem-estar
 Plano B à mão|Salve uma refeição rápida e uma alternativa de movimento.|bem-estar
 Comprar com orçamento|Compare opções sazonais e os ingredientes que você já tem.|alimentacao
@@ -72,14 +154,14 @@ Trocar sem abandonar|Teste uma alternativa se o plano original não for possíve
 Revisar compras|Ajuste a lista ao que sobrou e ao que pretende preparar.|alimentacao
 Base que acompanha você|Escreva uma regra simples para organizar cada período do dia.|bem-estar
 Sua base construída|Identifique o que tornou a rotina mais fácil neste capítulo.|bem-estar`,
-`Consistência flexível|Escolha um hábito essencial e permita adaptar os demais.|bem-estar
+  `Consistência flexível|Escolha um hábito essencial e permita adaptar os demais.|bem-estar
 Uma nova combinação|Combine ingredientes conhecidos de um jeito diferente.|alimentacao
 Variação confortável|Mude o local ou o horário do movimento, mantendo o esforço confortável.|movimento
 Sono em dias diferentes|Observe como seus compromissos afetam o horário de desaceleração.|sono
 Repertório de refeições|Escolha três receitas que você sabe encaixar na semana.|alimentacao
 Recomeço simples|Use a alternativa curta de uma missão para praticar a retomada.|bem-estar
 Uma semana de ajustes|Anote qual adaptação evitou que você abandonasse o plano.|bem-estar
-Novas cores|Inclua um vegetal de que gosta em uma combinação conhecida.|alimentacao
+Nova combinação|Combine ovos com uma carne ou peixe que você já costuma preparar.|alimentacao
 Companhia ou silêncio|Escolha se prefere se mover sozinho ou com companhia hoje.|movimento
 Desacelerar sem tela|Experimente uma atividade tranquila sem tela antes de deitar.|sono
 Refeição fora da rotina|Planeje uma opção compatível para um dia fora de casa.|alimentacao
@@ -102,7 +184,7 @@ Escutar o conforto|Adapte o movimento se o ambiente ou sua disposição mudarem.
 Variedade com simplicidade|Mantenha as bases da semana e mude apenas um ingrediente.|alimentacao
 Seu repertório pessoal|Liste as alternativas que mais ajudaram em dias difíceis.|bem-estar
 Consistência construída|Reconheça como suas escolhas ficaram mais flexíveis neste capítulo.|bem-estar`,
-`Sua própria direção|Escolha os hábitos que deseja levar além dos 120 dias.|bem-estar
+  `Sua própria direção|Escolha os hábitos que deseja levar além dos 120 dias.|bem-estar
 Cardápio com autonomia|Monte um dia de refeições usando suas receitas favoritas.|alimentacao
 Movimento escolhido|Escolha lugar e horário sem aumentar a exigência da atividade.|movimento
 Descanso como compromisso|Reserve um espaço realista para encerrar o dia.|sono
@@ -117,7 +199,7 @@ Ambiente que ajuda|Mantenha à vista um objeto que facilita um hábito escolhido
 Recuperação planejada|Reserve uma pausa de recuperação entre seus compromissos.|movimento
 Uma semana sua|Avalie se a meta semanal continua realista e ajuste se necessário.|bem-estar
 Continuar com clareza|Defina quando e onde praticará seus três hábitos essenciais.|bem-estar
-Lista de favoritos|Reúna três cafés, três refeições e dois lanches que funcionaram.|alimentacao
+Lista de favoritos|Reúna três cafés, três almoços e três jantares que funcionaram.|alimentacao
 Alternativa permanente|Escolha uma versão curta de movimento para dias cheios.|movimento
 Descanso fora de casa|Prepare uma versão simples do ritual de desaceleração para viagens.|sono
 Planejar sem depender|Monte uma combinação com o que já sabe preparar.|alimentacao
@@ -132,82 +214,261 @@ Aprendizado que fica|Anote uma descoberta sobre alimentação, movimento e desca
 Próxima semana desenhada|Confira agenda, refeições e horários antes de encerrar a jornada.|alimentacao
 Sua carta de continuidade|Escreva quais hábitos vai manter e como pretende revisar o plano.|bem-estar
 O caminho continua|Reconheça sua participação e escolha o próximo passo com autonomia.|bem-estar`,
-]
-export const protocols: Protocol[] = chaptersContent.flatMap((chapter, index) => chapter.split('\n').map((row, offset) => {
-  const [title, focus, theme] = row.split('|') as [string,string,Category]
-  return {day:index*30+offset+1, chapter:index+1,title,focus,theme,lesson:chapters[index]!.objective}
-}))
+];
+export const protocols: Protocol[] = chaptersContent.flatMap((chapter, index) =>
+  chapter.split("\n").map((row, offset) => {
+    const [title, focus, theme] = row.split("|") as [string, string, Category];
+    return {
+      day: index * 30 + offset + 1,
+      chapter: index + 1,
+      title,
+      focus,
+      theme,
+      lesson: chapters[index]!.objective,
+    };
+  }),
+);
 
 export function shiftTime(time: string, minutes: number) {
-  const [h,m] = time.split(':').map(Number)
-  const total = ((h!*60 + m! + minutes)%1440+1440)%1440
-  return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`
+  const [h, m] = time.split(":").map(Number);
+  const total = (((h! * 60 + m! + minutes) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 export function strengthWeekdays(profile: Profile) {
-  const selected: number[] = []
-  for (const day of [1,2,3,4,5,6,0]) {
-    if (!profile.trainingDays.includes(day) || selected.length === 3) continue
-    if (selected.some(previous => (previous+1)%7 === day || (day+1)%7 === previous)) continue
-    selected.push(day)
+  const selected: number[] = [];
+  for (const day of [1, 2, 3, 4, 5, 6, 0]) {
+    if (!profile.trainingDays.includes(day) || selected.length === 3) continue;
+    if (
+      selected.some(
+        (previous) => (previous + 1) % 7 === day || (day + 1) % 7 === previous,
+      )
+    )
+      continue;
+    selected.push(day);
   }
-  return selected
+  return selected;
 }
 
-const zincFoods = new Set(['Feijão cozido','Lentilha cozida','Grão-de-bico cozido','Sardinha em conserva','Atum em conserva','Filé de peixe','Ovo','Amendoim sem sal','Castanha-de-caju','Arroz integral cozido'])
+const zincFoods = new Set([
+  "carne bovina magra",
+  "sardinha",
+  "Ovos",
+]);
 
-function exerciseDetails(id:ExerciseId,profile:Profile,motionTime:number) {
-  const move = exercises[id]
-  const sets = motionTime < 12 || profile.experience === 'iniciante' ? 1 : profile.experience === 'avancado' ? 3 : 2
-  return {name:profile.location === 'academia' ? move.gym : move.home,sets:String(sets),reps:'6 a 10',rest:'30 a 60 s',note:move.note}
+function exerciseDetails(id: ExerciseId, profile: Profile, motionTime: number) {
+  const move = exercises[id];
+  const sets =
+    motionTime < 12 || profile.experience === "iniciante"
+      ? 1
+      : profile.experience === "avancado"
+        ? 3
+        : 2;
+  return {
+    name: profile.location === "academia" ? move.gym : move.home,
+    sets: String(sets),
+    reps: "6 a 10",
+    rest: "30 a 60 s",
+    note: move.note,
+  };
 }
 
-export function personalizedMissions(protocol: Protocol, profile: Profile, date: string, plannedMeals: Meal[] = []): Activity[] {
-  const n = protocol.day-1
-  const strengthDay = strengthWeekdays(profile).includes(weekday(date))
-  const motionTime = strengthDay ? Math.min(profile.experience==='iniciante'?15:35,Math.max(4,Math.floor(profile.minutes*.42))) : 2
-  const habitIndex=(n+Math.floor(n/12))%dailyHabitMinutes.length
-  const routineTime = Math.min(dailyHabitMinutes[habitIndex]!,Math.max(1,profile.minutes-motionTime-7))
-  const remainingTime=Math.max(3,profile.minutes-motionTime-routineTime)
-  const sleepTime=Math.min(10,Math.max(1,remainingTime-2))
-  const cardioTime=Math.max(2,remainingTime-sleepTime)
-  const chosen = strengthPlans[(n+Math.floor(n/12))%strengthPlans.length]!
-  const moves = strengthDay ? chosen.moves.slice(0,motionTime<8?1:motionTime<14?2:3).map(id=>exerciseDetails(id,profile,motionTime)) : []
-  const place = profile.location === 'academia' ? 'na academia' : profile.location === 'ar-livre' ? 'em local plano e seguro ao ar livre' : 'em casa, perto de um apoio estável'
-  const workout = strengthDay ? {
-    title:chosen.title,
-    how:`Reserve ${motionTime} minutos ${place}. Comece com movimentos leves e faça os exercícios abaixo com carga confortável, sem prender a respiração.`,
-    purpose:'Sessões de força distribuídas na semana ajudam a manter músculos e capacidade funcional.',
-    alternative:'Reduza a amplitude ou use a versão sem carga. Se estiver dolorido ou indisposto, escolha mobilidade leve ou descanso.',
-  } : recoveryStep(protocol.day,motionTime)
-  const mealStep = (slot:'breakfast'|'lunch'|'dinner',label:string) => {
-    const planned = plannedMeals.find(meal=>meal.slot===slot)
-    const zincIngredient = planned?.ingredients.find(ingredient=>zincFoods.has(ingredient.name))
-    return {planned,text:{
-      title:planned ? `${label}: ${planned.description}` : `${label}: escolha uma opção`,
-      how:planned ? `Confira em Alimentação a receita de ${planned.description}, seus ingredientes e preparo. Troque a receita se precisar.` : `Abra Alimentação e escolha uma opção para ${label.toLocaleLowerCase('pt-BR')} compatível com suas preferências.`,
-      purpose:zincIngredient ? `${zincIngredient.name} contribui com zinco para uma alimentação adequada. Nenhum alimento isolado garante aumento de testosterona.` : 'Uma alimentação variada ajuda a obter nutrientes sem depender de um alimento isolado.',
-      alternative:'Use outra receita compatível do cardápio ou alimentos que já costuma consumir. Se não houver opção compatível, revise suas preferências.',
-    }}
-  }
-  const breakfast=mealStep('breakfast','Café da manhã')
-  const lunch=mealStep('lunch','Almoço')
-  const dinner=mealStep('dinner','Jantar')
-  const moveTime = profile.activityPeriod==='manha' ? shiftTime(profile.wakeTime,60) : profile.activityPeriod==='tarde' ? '15:00' : shiftTime(profile.sleepTime,-240)
-  const habitOffsets=[0,180,-30,240,300,0,-60,-180,-60,330,60,-45]
-  const routineClock=habitOffsets[habitIndex]!<0?shiftTime(profile.sleepTime,habitOffsets[habitIndex]!):shiftTime(profile.wakeTime,habitOffsets[habitIndex]!)
-  const routine=dailyHabit(habitIndex+1,routineTime,routineClock)
-  const sleep=sleepHabit((n+Math.floor(n/8))%8+1,sleepTime,profile)
-  const rows: {key:string; role:NonNullable<Activity['role']>; text:WellnessStep; category:Category; icon:string; minutes:number; time:string; exercises?:Activity['exercises']; mealId?:string; done?:boolean}[] = [
-    {key:'food:breakfast',role:'alimentacao',text:breakfast.text,category:'alimentacao',icon:'utensils',minutes:0,time:breakfast.planned?.time??shiftTime(profile.wakeTime,30),mealId:breakfast.planned?.id,done:breakfast.planned?.done},
-    {key:'routine',role:'habito',text:routine,category:'bem-estar',icon:'sun',minutes:routineTime,time:routineClock},
-    {key:'movement',role:'treino',text:workout,category:'movimento',icon:strengthDay?'dumbbell':'stretch',minutes:motionTime,time:moveTime,exercises:moves},
-    {key:'food',role:'alimentacao',text:lunch.text,category:'alimentacao',icon:'utensils',minutes:0,time:lunch.planned?.time??shiftTime(profile.wakeTime,330),mealId:lunch.planned?.id,done:lunch.planned?.done},
-    {key:'cardio',role:'cardio',text:cardioStep(protocol.day,profile.location,cardioTime),category:'movimento',icon:'heart',minutes:cardioTime,time:shiftTime(moveTime,strengthDay?motionTime+15:30)},
-    {key:'food:dinner',role:'alimentacao',text:dinner.text,category:'alimentacao',icon:'utensils',minutes:0,time:dinner.planned?.time??shiftTime(profile.sleepTime,-150),mealId:dinner.planned?.id,done:dinner.planned?.done},
-    {key:'sleep',role:'sono',text:sleep,category:'sono',icon:'moon',minutes:sleepTime,time:sleep.time},
-  ]
-  return rows.map(row => ({id:`journey:${protocol.day}:${row.key}`,templateId:`journey:${row.key}`,journeyDay:protocol.day,date,title:row.text.title,subtitle:row.text.purpose,category:row.category,role:row.role,mealId:row.mealId,icon:row.icon,time:row.time,minutes:row.minutes,done:row.done??false,editable:false,demo:false,exercises:row.exercises??[],
-    instructions:[row.text.how,...(row.role==='sono'&&profile.sleepQuality==='irregular'?[`Mesmo nos dias irregulares, use ${shiftTime(profile.wakeTime,-420)} como limite para garantir 7 h antes de acordar às ${profile.wakeTime}.`]:[])],
-    purpose:row.text.purpose,alternative:row.text.alternative,
-  }))
+export function personalizedMissions(
+  protocol: Protocol,
+  profile: Profile,
+  date: string,
+  plannedMeals: Meal[] = [],
+): Activity[] {
+  const n = protocol.day - 1;
+  const strengthDay = strengthWeekdays(profile).includes(weekday(date));
+  const motionTime = strengthDay
+    ? Math.min(
+        profile.experience === "iniciante" ? 15 : 35,
+        Math.max(4, Math.floor(profile.minutes * 0.42)),
+      )
+    : 2;
+  const habitIndex = (n + Math.floor(n / 12)) % dailyHabitMinutes.length;
+  const routineTime = Math.min(
+    dailyHabitMinutes[habitIndex]!,
+    Math.max(1, profile.minutes - motionTime - 7),
+  );
+  const remainingTime = Math.max(3, profile.minutes - motionTime - routineTime);
+  const sleepTime = Math.min(10, Math.max(1, remainingTime - 2));
+  const cardioTime = Math.max(2, remainingTime - sleepTime);
+  const chosen =
+    strengthPlans[(n + Math.floor(n / 12)) % strengthPlans.length]!;
+  const moves = strengthDay
+    ? chosen.moves
+        .slice(0, motionTime < 8 ? 1 : motionTime < 14 ? 2 : 3)
+        .map((id) => exerciseDetails(id, profile, motionTime))
+    : [];
+  const place =
+    profile.location === "academia"
+      ? "na academia"
+      : profile.location === "ar-livre"
+        ? "em local plano e seguro ao ar livre"
+        : "em casa, perto de um apoio estável";
+  const workout = strengthDay
+    ? {
+        title: chosen.title,
+        how: `Reserve ${motionTime} minutos ${place}. Comece com movimentos leves e faça os exercícios abaixo com carga confortável, sem prender a respiração.`,
+        purpose:
+          "Sessões de força distribuídas na semana ajudam a manter músculos e capacidade funcional.",
+        alternative:
+          "Reduza a amplitude ou use a versão sem carga. Se estiver dolorido ou indisposto, escolha mobilidade leve ou descanso.",
+      }
+    : recoveryStep(protocol.day, motionTime);
+  const mealStep = (slot: "breakfast" | "lunch" | "dinner", label: string) => {
+    const planned = plannedMeals.find((meal) => meal.slot === slot);
+    const portions = planned?.recipeId ? recipeById.get(planned.recipeId)?.sourcePortions : undefined;
+    const zincIngredient = planned?.ingredients.find((ingredient) =>
+      zincFoods.has(ingredient.name),
+    );
+    return {
+      planned,
+      text: {
+        title: planned
+          ? `${label}: ${planned.description}`
+          : `${label}: escolha uma opção`,
+        how: planned
+          ? `${portions ?? planned.ingredients.map(ingredient=>`${ingredient.name} ${ingredient.quantity} ${ingredient.unit}`).join('; ')} Confira em Alimentação o preparo e as porções.`
+          : `Abra Alimentação e escolha uma opção para ${label.toLocaleLowerCase("pt-BR")} compatível com suas preferências.`,
+        purpose: zincIngredient
+          ? `${zincIngredient.name} pode contribuir com zinco para uma alimentação adequada`
+          : "Combine opções de origem animal para obter diferentes nutrientes, sem depender de um alimento isolado.",
+        alternative:
+          "Use outra receita compatível do cardápio ou alimentos que já costuma consumir. Se não houver opção compatível, revise suas preferências.",
+      },
+    };
+  };
+  const breakfast = mealStep("breakfast", "Café da manhã");
+  const lunch = mealStep("lunch", "Almoço");
+  const dinner = mealStep("dinner", "Jantar");
+  const moveTime =
+    profile.activityPeriod === "manha"
+      ? shiftTime(profile.wakeTime, 60)
+      : profile.activityPeriod === "tarde"
+        ? "15:00"
+        : shiftTime(profile.sleepTime, -240);
+  const habitOffsets = [0, 180, -30, 240, 300, 0, -60, -180, -60, 330, 60, -45];
+  const routineClock =
+    habitOffsets[habitIndex]! < 0
+      ? shiftTime(profile.sleepTime, habitOffsets[habitIndex]!)
+      : shiftTime(profile.wakeTime, habitOffsets[habitIndex]!);
+  const routine = dailyHabit(habitIndex + 1, routineTime, routineClock);
+  const sleep = sleepHabit(
+    ((n + Math.floor(n / 8)) % 8) + 1,
+    sleepTime,
+    profile,
+  );
+  const rows: {
+    key: string;
+    role: NonNullable<Activity["role"]>;
+    text: WellnessStep;
+    category: Category;
+    icon: string;
+    minutes: number;
+    time: string;
+    exercises?: Activity["exercises"];
+    mealId?: string;
+    done?: boolean;
+  }[] = [
+    {
+      key: "food:breakfast",
+      role: "alimentacao",
+      text: breakfast.text,
+      category: "alimentacao",
+      icon: "utensils",
+      minutes: 0,
+      time: breakfast.planned?.time ?? shiftTime(profile.wakeTime, 30),
+      mealId: breakfast.planned?.id,
+      done: breakfast.planned?.done,
+    },
+    {
+      key: "routine",
+      role: "habito",
+      text: routine,
+      category: "bem-estar",
+      icon: "sun",
+      minutes: routineTime,
+      time: routineClock,
+    },
+    {
+      key: "movement",
+      role: "treino",
+      text: workout,
+      category: "movimento",
+      icon: strengthDay ? "dumbbell" : "stretch",
+      minutes: motionTime,
+      time: moveTime,
+      exercises: moves,
+    },
+    {
+      key: "food",
+      role: "alimentacao",
+      text: lunch.text,
+      category: "alimentacao",
+      icon: "utensils",
+      minutes: 0,
+      time: lunch.planned?.time ?? shiftTime(profile.wakeTime, 330),
+      mealId: lunch.planned?.id,
+      done: lunch.planned?.done,
+    },
+    {
+      key: "cardio",
+      role: "cardio",
+      text: cardioStep(protocol.day, profile.location, cardioTime),
+      category: "movimento",
+      icon: "heart",
+      minutes: cardioTime,
+      time: shiftTime(moveTime, strengthDay ? motionTime + 15 : 30),
+    },
+    {
+      key: "food:dinner",
+      role: "alimentacao",
+      text: dinner.text,
+      category: "alimentacao",
+      icon: "utensils",
+      minutes: 0,
+      time: dinner.planned?.time ?? shiftTime(profile.sleepTime, -150),
+      mealId: dinner.planned?.id,
+      done: dinner.planned?.done,
+    },
+    {
+      key: "sleep",
+      role: "sono",
+      text: sleep,
+      category: "sono",
+      icon: "moon",
+      minutes: sleepTime,
+      time: sleep.time,
+    },
+  ];
+  return rows.map((row) => ({
+    id: `journey:${protocol.day}:${row.key}`,
+    templateId: `journey:${row.key}`,
+    journeyDay: protocol.day,
+    date,
+    title: row.text.title,
+    subtitle: row.text.purpose,
+    category: row.category,
+    role: row.role,
+    mealId: row.mealId,
+    icon: row.icon,
+    time: row.time,
+    minutes: row.minutes,
+    done: row.done ?? false,
+    editable: false,
+    demo: false,
+    exercises: row.exercises ?? [],
+    instructions: [
+      row.text.how,
+      ...(row.role === "sono" && profile.sleepQuality === "irregular"
+        ? [
+            `Mesmo nos dias irregulares, use ${shiftTime(profile.wakeTime, -420)} como limite para garantir 7 h antes de acordar às ${profile.wakeTime}.`,
+          ]
+        : []),
+    ],
+    purpose: row.text.purpose,
+    alternative: row.text.alternative,
+  }));
 }

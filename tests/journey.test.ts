@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { workspaceSchema, type Profile } from '../src/domain/types'
+import { profileSchema, workspaceSchema, type Profile } from '../src/domain/types'
+import pdfMenu from '../src/content/pdf-menu.json'
 import { dateKey, addDays } from '../src/domain/dates'
 import { chapterForDay, dayState, isDayUnlocked, journeyDay, missionsForDay, participation } from '../src/domain/journey'
 import { chapters, personalizedMissions, protocols, strengthWeekdays } from '../src/content/journey'
 import { allergenNames, recipes, recipeById, foods } from '../src/content/recipes'
-import { isCompatible, mealsForDay, menus, suitableRecipes } from '../src/domain/nutrition'
+import { isCompatible, mealFromRecipe, mealsForDay, menus, suitableRecipes } from '../src/domain/nutrition'
 import { applyAction, backupKey, initialProfile, load, prepareWorkspace, storageKey } from '../src/demo/repository'
 import { consolidateIngredients } from '../src/domain/grocery'
 
@@ -125,40 +126,58 @@ describe('conteúdo completo e personalização',()=>{
     }
     expect(new Set(firstTwoWeeks.map(day=>day.find(a=>a.role==='cardio')!.title)).size).toBe(12)
   })
-  it('tem 80 receitas completas, alergênicos coerentes e 30 cardápios distintos',()=>{
-    expect(recipes).toHaveLength(80)
-    expect(new Set(recipes.map(r=>r.id)).size).toBe(80)
-    expect(new Set(menus.map(m=>JSON.stringify(m.recipes))).size).toBe(30)
+  it('importa as 360 refeições e quantidades dos 120 dias',()=>{
+    expect(recipes.length).toBeGreaterThanOrEqual(100)
+    expect(new Set(recipes.map(r=>r.id)).size).toBe(recipes.length)
+    expect(menus).toHaveLength(120)
+    expect(new Set(menus.map(m=>JSON.stringify(m.recipes))).size).toBe(120)
     for(const recipe of recipes){
+      expect(recipe.diet).toBe('proteina-animal')
       expect(recipe.ingredients.length).toBeGreaterThan(0);expect(recipe.steps.length).toBeGreaterThan(0)
-      expect(recipe.minutes).toBeGreaterThan(0);expect(recipe.servings).toBeGreaterThan(0)
+      expect(recipe.servings).toBe(1)
+      expect(recipe.sourcePortions).toBeTruthy()
       const allergens=[...new Set(recipe.ingredients.flatMap(i=>Object.values(foods).find(f=>f.name===i.name)!.allergens))].sort()
       expect([...recipe.allergens].sort()).toEqual(allergens)
       expect(recipe.ingredients.every(i=>i.quantity>0)).toBe(true)
     }
-    for(const menu of menus)for(const [slot,id] of Object.entries(menu.recipes))expect(recipeById.get(id)!.slots).toContain(slot)
+    for(const [index,menu] of menus.entries())for(const [slot,id] of Object.entries(menu.recipes)){
+      const recipe=recipeById.get(id)!
+      expect(recipe.slots).toContain(slot)
+      expect(recipe.name).toBe(pdfMenu[index]!.meals[slot as 'breakfast'|'lunch'|'dinner'].name)
+      expect(recipe.sourcePortions).toBe(pdfMenu[index]!.meals[slot as 'breakfast'|'lunch'|'dinner'].portions)
+    }
   })
-  it('mantém todos os 120 dias compatíveis, inclusive com todas as alergias do catálogo',()=>{
-    for(const diet of ['variada','carnivora','vegetariana','vegana','mediterranea'] as const){
-      const profile={...initialProfile,diet,allergies:Object.keys(allergenNames) as Profile['allergies'],cookMinutes:10,excludedIngredients:['Banana']}
-      for(let day=1;day<=120;day++){
-        const meals=mealsForDay(day,addDays(start,day-1),profile)
-        expect(meals).toHaveLength(4)
-        for(const meal of meals){const recipe=recipeById.get(meal.recipeId!)!;expect(isCompatible(recipe,profile)).toBe(true);expect(recipe.minutes).toBeLessThanOrEqual(10);expect(recipe.economical).toBe(true)}
-      }
+  it('mantém os dias variados sem repetir receita ou ignorar alergias',()=>{
+    const restricted={...initialProfile,allergies:Object.keys(allergenNames) as Profile['allergies'],cookMinutes:10}
+    for(let day=1;day<=120;day++){
+      const date=addDays(start,day-1)
+      const meals=mealsForDay(day,date,initialProfile)
+      expect(meals).toHaveLength(3)
+      expect(new Set(meals.map(meal=>meal.recipeId)).size).toBe(3)
+      expect(meals.map(meal=>meal.description)).toEqual(['breakfast','lunch','dinner'].map(slot=>pdfMenu[day-1]!.meals[slot as 'breakfast'|'lunch'|'dinner'].name))
+      for(const meal of meals)expect(recipeById.get(meal.recipeId!)!.slots).toContain(meal.slot)
+      const limited=mealsForDay(day,date,restricted)
+      expect(new Set(limited.map(meal=>meal.recipeId)).size).toBe(limited.length)
+      for(const meal of limited){const recipe=recipeById.get(meal.recipeId!)!;expect(isCompatible(recipe,restricted)).toBe(true)}
     }
     const days=Array.from({length:30},(_,i)=>mealsForDay(i+1,start,initialProfile).map(m=>m.recipeId).join('|'))
     expect(new Set(days).size).toBe(30)
   })
-  it('gera uma semana carnívora apenas com receitas carnívoras e poucos ingredientes',()=>{
-    const profile={...initialProfile,diet:'carnivora' as const,cookMinutes:60,budget:'flexivel' as const}
+  it('gera a primeira semana com as porções planejadas',()=>{
+    const profile={...initialProfile,diet:'proteina-animal' as const,cookMinutes:60,budget:'flexivel' as const}
     const week=Array.from({length:7},(_,index)=>mealsForDay(index+1,addDays(start,index),profile)).flat()
-    expect(week).toHaveLength(28)
+    expect(week).toHaveLength(21)
     for(const meal of week){
       const recipe=recipeById.get(meal.recipeId!)!
-      expect(recipe.diet).toBe('carnivora')
-      expect(recipe.ingredients.length).toBeLessThanOrEqual(2)
+      expect(recipe.diet).toBe('proteina-animal')
+      expect(recipe.ingredients.length).toBeGreaterThanOrEqual(4)
     }
+    const list=consolidateIngredients(week)
+    const amount=(name:string)=>list.find(item=>item.name===name)?.quantity
+    expect(amount('Ovos')).toBe(11)
+    expect(amount('frango sem pele')).toBe(1440)
+    expect(amount('arroz')).toBe(900)
+    expect(amount('iogurte natural')).toBe(1190)
   })
   it('não enfraquece restrições quando não há opções',()=>{
     const profile={...initialProfile,excludedIngredients:Object.values(foods).map(f=>f.name)}
@@ -167,6 +186,35 @@ describe('conteúdo completo e personalização',()=>{
 })
 describe('persistência, preferências e compras',()=>{
   beforeEach(()=>{const storage=new Map<string,string>();vi.stubGlobal('localStorage',{getItem:(k:string)=>storage.get(k)??null,setItem:(k:string,v:string)=>storage.set(k,v),removeItem:(k:string)=>storage.delete(k)})})
+  it('corrige um dia antigo com a mesma receita em todos os horários',()=>{
+    const state=create()
+    const repeated=recipeById.get(menus[0]!.recipes.lunch)!
+    state.meals=state.meals.map(meal=>meal.date===start&&meal.slot?mealFromRecipe(repeated,start,meal.slot,state.profile):meal)
+    prepareWorkspace(state,start)
+    const today=state.meals.filter(meal=>meal.date===start)
+    expect(today).toHaveLength(3)
+    expect(new Set(today.map(meal=>meal.recipeId)).size).toBe(3)
+    expect(today.find(meal=>meal.slot==='breakfast')?.recipeId).not.toBe(repeated.id)
+    for(const meal of today){
+      const mission=state.activities.find(activity=>activity.mealId===meal.id)
+      if(mission)expect(mission.title).toContain(meal.description)
+    }
+  })
+  it('migra um perfil antigo e substitui refeições futuras pelo cardápio atual',async()=>{
+    expect(profileSchema.safeParse({...initialProfile,diet:'vegana'}).success).toBe(false)
+    const today=dateKey(initialProfile.timezone)
+    const saved=JSON.parse(JSON.stringify(create()))
+    saved.profile.diet='vegana'
+    saved.profile.excludedIngredients=['Banana']
+    const future=saved.meals.find((meal:{date:string})=>meal.date>=today)
+    expect(future).toBeDefined()
+    future.recipeId='banana-aveia'
+    localStorage.setItem(storageKey,JSON.stringify(saved))
+    const migrated=await load()
+    expect(migrated.profile.diet).toBe('proteina-animal')
+    expect(migrated.profile.excludedIngredients).toEqual([])
+    expect(migrated.meals.filter(meal=>meal.date>=today).every(meal=>recipeById.has(meal.recipeId!))).toBe(true)
+  })
   it('sincroniza café, almoço e jantar com o registro de alimentação sem duplicar XP',()=>{
     const state=create()
     for(const slot of ['breakfast','lunch','dinner'] as const){
@@ -207,7 +255,7 @@ describe('persistência, preferências e compras',()=>{
   it('recusa trocar o dono e adapta preferências preservando conclusões e início',()=>{
     const state=create(),first=state.activities[0]!
     applyAction(state,{type:'activity',id:first.id,done:true},start)
-    applyAction(state,{type:'profile',profile:{...state.profile,diet:'vegana',allergies:['soja'],minutes:10}},start)
+    applyAction(state,{type:'profile',profile:{...state.profile,allergies:['peixe'],minutes:10}},start)
     expect(state.journey!.startDate).toBe(start)
     expect(state.activities.find(a=>a.id===first.id)!.done).toBe(true)
     expect(state.meals.every(m=>isCompatible(recipeById.get(m.recipeId!)!,state.profile))).toBe(true)
@@ -218,7 +266,7 @@ describe('persistência, preferências e compras',()=>{
     expect(state.shoppingRange).toEqual({start,days:7})
     expect(state.grocery.some(item=>!item.personal)).toBe(true)
     applyAction(state,{type:'groceries',items:[{id:'personal',name:'Café pessoal',quantity:1,unit:'un',category:'Outros',checked:true,personal:true,sourceKey:null}]},start)
-    const alternative=suitableRecipes(state.profile,'lunch').find(r=>r.id!==meal.recipeId)!
+    const alternative=suitableRecipes(state.profile,'lunch').find(r=>r.id!==meal.recipeId&&!state.meals.some(other=>other.date===meal.date&&other.id!==meal.id&&other.recipeId===r.id))!
     applyAction(state,{type:'swapMeal',id:meal.id,recipeId:alternative.id},start)
     expect(state.meals.find(m=>m.id===meal.id)!.recipeId).toBe(alternative.id)
     expect(missionsForDay(state,2).find(a=>a.templateId==='journey:food')!.title).toContain(alternative.name)
@@ -229,10 +277,11 @@ describe('persistência, preferências e compras',()=>{
   })
   it('rejeita troca incompatível e não recomenda ingredientes antigos após nova restrição',()=>{
     const state=create({allergies:['ovos']})
-    const meal=state.meals.find(m=>m.date===start&&m.slot==='breakfast')!
-    expect(()=>applyAction(state,{type:'swapMeal',id:meal.id,recipeId:'pao-ovo'},start)).toThrow(/compatível/)
-    applyAction(state,{type:'profile',profile:{...state.profile,excludedIngredients:['Banana']}},start)
-    expect(state.grocery.some(i=>i.name==='Banana')).toBe(false)
+    const meal=state.meals.find(m=>m.date===addDays(start,3)&&m.slot==='breakfast')!
+    const incompatible=recipes.find(recipe=>recipe.slots.includes('breakfast')&&recipe.allergens.includes('ovos'))!
+    expect(()=>applyAction(state,{type:'swapMeal',id:meal.id,recipeId:incompatible.id},start)).toThrow(/compatível/)
+    applyAction(state,{type:'profile',profile:{...state.profile,excludedIngredients:['banana']}},start)
+    expect(state.grocery.some(i=>i.name==='banana')).toBe(false)
   })
   it('ajustar apenas a meta semanal não descarta refeições escolhidas ou horários editados',()=>{
     const state=create(),meal=state.meals.find(m=>m.slot==='lunch')!

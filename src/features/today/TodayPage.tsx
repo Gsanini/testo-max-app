@@ -31,6 +31,7 @@ import {
 } from '@/domain/journey'
 import { localTime, nextActivity, sortDailyActivities } from '@/domain/dayPlan'
 import { formatDate } from '@/domain/dates'
+import { recipeForMeal } from '@/domain/nutrition'
 import { streaks } from '@/domain/progress'
 import { cn } from '@/lib/utils'
 
@@ -166,10 +167,9 @@ export default function TodayPage() {
           <div className="today-meal-list">
             {meals.map(activity => {
               const meal = data.meals.find(item => item.id === activity.mealId)
-              const image = meal?.slot === 'breakfast' ? 'breakfast' : meal?.slot === 'dinner' ? 'dinner' : 'lunch'
               return <button key={activity.id} onClick={() => setSelectedId(activity.id)} aria-label={`Abrir detalhes de ${activity.title}`}>
-                <img src={`/images/${image}.jpg`} alt=""/>
-                <div><span>{meal?.title??activityName(activity)}</span><strong>{meal?.description??activity.title}</strong><small>{meal?.ingredients.slice(0,3).map(item=>item.name).join(', ')}</small></div>
+                <span className="today-meal-icon" aria-hidden="true"><Utensils size={22}/></span>
+                <div><span>{meal?.title??activityName(activity)}</span><strong>{meal?.description??activity.title}</strong><small>{meal ? recipeForMeal(meal)?.sourcePortions ?? meal.ingredients.map(item=>`${item.name} ${item.quantity} ${item.unit}`).join('; ') : ''}</small></div>
                 <time>{activity.time}</time><ChevronRight size={16}/>
               </button>
             })}

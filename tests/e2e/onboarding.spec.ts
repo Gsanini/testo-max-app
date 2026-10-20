@@ -12,7 +12,7 @@ test('uma pergunta por etapa, voltar, preferências e acesso móvel ao perfil',a
   await expect(page.getByRole('radio',{name:/Organizar minha alimentação/})).toBeChecked()
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations).toEqual([])
   await page.screenshot({path:`test-results/${testInfo.project.name}-onboarding.png`,fullPage:true})
-  for(let step=0;step<22;step++){
+  for(let step=0;step<20;step++){
     if(step===1)await page.getByRole('spinbutton',{name:'Idade em anos (opcional)'}).fill('34')
     if(step===2)await page.getByRole('spinbutton',{name:'Peso em kg (opcional)'}).fill('82.5')
     if(step===3)await page.getByRole('radio',{name:/Percebi mudanças no corpo/}).check()
@@ -20,9 +20,7 @@ test('uma pergunta por etapa, voltar, preferências e acesso móvel ao perfil',a
     if(step===5)await page.getByRole('radio',{name:/Continuar sem energia/}).check()
     if(step===8)await page.getByRole('combobox',{name:'Tempo diário para as missões'}).selectOption('10')
     if(step===14)await page.getByRole('radio',{name:/Cansado/}).check()
-    if(step===15)await page.getByRole('combobox',{name:'Estilo de alimentação'}).selectOption('vegana')
-    if(step===16)await page.getByRole('checkbox',{name:'Soja',exact:true}).check()
-    if(step===19)await page.getByRole('combobox',{name:'Tempo por preparo'}).selectOption('10')
+    if(step===16)await page.getByRole('checkbox',{name:'Amendoim',exact:true}).check()
     await page.getByRole('button',{name:'Continuar',exact:true}).click()
   }
   await expect(page.getByText('Até 10 min para hábitos e movimento por dia',{exact:false})).toBeVisible()
@@ -30,7 +28,7 @@ test('uma pergunta por etapa, voltar, preferências e acesso móvel ao perfil',a
   await page.getByRole('button',{name:'Começar minha jornada'}).click()
   await expect(page.locator('.next-action h2')).toHaveText('Luz natural por 1 minuto')
   const profile=(await workspace(page)).profile
-  expect(profile).toMatchObject({age:34,weightKg:82.5,testosteroneReason:'sintomas',perceivedChanges:['energia','libido'],mainConcern:'energia',wakeFeeling:'cansado',allergies:['soja']})
+  expect(profile).toMatchObject({age:34,weightKg:82.5,testosteroneReason:'sintomas',perceivedChanges:['energia','libido'],mainConcern:'energia',wakeFeeling:'cansado',allergies:['amendoim']})
   await page.getByRole('link',{name:'Perfil',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Suas preferências',exact:true})).toBeVisible()
 })

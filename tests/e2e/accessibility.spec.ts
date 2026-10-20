@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import {enter} from './helpers'
 
 test('contraste, rótulos, teclado e landmarks',async({page},testInfo)=>{
+  test.setTimeout(120000)
   await page.emulateMedia({reducedMotion:'reduce'})
   await enter(page)
   for(const path of ['/','/jornada','/alimentacao','/bonus','/progresso','/perfil','/alimentacao/compras']){

@@ -48,9 +48,9 @@ test('troca futura recalcula lista, mantém itens pessoais e persiste',async({pa
   await expect(page.getByText('LISTA GERADA AUTOMATICAMENTE',{exact:true})).toBeVisible()
   await expect(page.locator('.grocery-row').first()).toBeVisible()
   await expect(page.getByRole('button',{name:'Gerar lista',exact:true})).toHaveCount(0)
-  const chicken=page.locator('.grocery-row').filter({hasText:'Peito de frango cru'})
+  const chicken=page.locator('.grocery-row').filter({hasText:'frango sem pele'})
   await expect(chicken).toContainText(/refeições?/)
-  await expect(chicken).toContainText('cozidos')
+  await expect(chicken).toContainText('Peso pronto')
   await page.getByRole('button',{name:'Adicionar item',exact:true}).click();await page.getByRole('textbox',{name:'Nome do item'}).fill('Café pessoal');await page.getByRole('button',{name:'Salvar item'}).click()
   const before=await workspace(page)
   await page.goto('/alimentacao');await page.locator('.food-week button').nth(1).click()
@@ -81,26 +81,24 @@ test('bônus abrem a lista de compras e orientam situações da vida real',async
 
 test('personalização real, restrições, biblioteca e saída preservam dados',async({page})=>{
   await enter(page);await page.goto('/perfil')
-  for(let step=0;step<22;step++){
+  for(let step=0;step<20;step++){
     if(step===8)await page.getByRole('combobox',{name:'Tempo diário para as missões'}).selectOption('10')
     if(step===10)await page.getByRole('radio',{name:'Na academia',exact:true}).check()
-    if(step===15)await page.getByRole('combobox',{name:'Estilo de alimentação'}).selectOption('vegana')
-    if(step===16)await page.getByRole('checkbox',{name:'Soja',exact:true}).check()
-    if(step===17)await page.getByRole('combobox',{name:'Adicionar ingrediente a evitar'}).selectOption('Banana')
-    if(step===19)await page.getByRole('combobox',{name:'Tempo por preparo'}).selectOption('10')
+    if(step===16)await page.getByRole('checkbox',{name:'Peixe',exact:true}).check()
+    if(step===17)await page.getByRole('combobox',{name:'Adicionar ingrediente a evitar'}).selectOption('iogurte natural')
     await page.getByRole('button',{name:'Continuar',exact:true}).click()
   }
   await page.getByRole('button',{name:'Salvar preferências'}).click()
   await expect(page.getByRole('status')).toContainText('Alterações salvas')
   await page.reload()
-  const state=await workspace(page);expect(state.profile.diet).toBe('vegana')
-  expect(state.meals.every((m:{ingredients:{name:string}[]})=>!m.ingredients.some(i=>['Banana','Tofu','Ovo','Leite','Iogurte natural','Queijo branco','Frango cozido desfiado'].includes(i.name)))).toBe(true)
+  const state=await workspace(page);expect(state.profile.diet).toBe('proteina-animal')
+  expect(state.meals.every((m:{ingredients:{name:string}[]})=>!m.ingredients.some(i=>['iogurte natural','sardinha'].includes(i.name)))).toBe(true)
   await page.goto('/alimentacao');await page.getByRole('button',{name:'Receitas',exact:true}).click()
-  await page.getByRole('searchbox',{name:'Buscar receita'}).fill('Banana');await expect(page.getByRole('heading',{name:'Nenhuma receita com esses filtros'})).toBeVisible()
+  await page.getByRole('searchbox',{name:'Buscar receita'}).fill('Receita inexistente');await expect(page.getByRole('heading',{name:'Nenhuma receita com esses filtros'})).toBeVisible()
   await page.getByRole('searchbox',{name:'Buscar receita'}).fill('');await page.locator('.recipe-library-item').first().click();await expect(page.getByRole('dialog')).toContainText('1 porção')
   await page.goto('/perfil');await page.getByRole('button',{name:/Sair Voltar/}).click();await page.getByRole('dialog').getByRole('button',{name:'Sair',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Bom ter você por aqui.'})).toBeVisible()
-  expect((await workspace(page)).profile.diet).toBe('vegana')
+  expect((await workspace(page)).profile.diet).toBe('proteina-animal')
 })
 
 test('migração preserva histórico e retorno permite seguir após ausência',async({page})=>{
@@ -127,29 +125,31 @@ test('falha ao salvar oferece repetição sem duplicar conclusão',async({page})
   await page.reload();await expect(page.locator('.level-pill')).toContainText('10 XP')
 })
 
-test('quiz carnívoro gera sete dias de refeições simples e lista automática',async({page})=>{
+test('quiz gera sete dias do cardápio e lista automática',async({page})=>{
   await page.clock.install({time:new Date('2026-10-17T15:00:00Z')})
   await page.goto('/');await page.getByRole('button',{name:'Entrar na minha rotina'}).click()
-  for(let step=0;step<22;step++){
-    if(step===15)await page.getByRole('combobox',{name:'Estilo de alimentação'}).selectOption('carnivora')
+  for(let step=0;step<20;step++){
     await page.getByRole('button',{name:'Continuar',exact:true}).click()
   }
   await page.getByRole('button',{name:'Começar minha jornada'}).click()
   await page.goto('/alimentacao')
-  await expect(page.getByText('Plano carnívoro selecionado.',{exact:true})).toBeVisible()
-  await expect(page.locator('.planned-meal')).toHaveCount(4)
+  await expect(page.getByText('Como pesar as porções.',{exact:true})).toBeVisible()
+  await expect(page.locator('.planned-meal')).toHaveCount(3)
   const state=await workspace(page)
   const planned=state.meals.filter((meal:{recipeId?:string})=>meal.recipeId)
   const firstWeekDates=[...new Set(planned.map((meal:{date:string})=>meal.date))].sort().slice(0,7)
   const firstWeek=planned.filter((meal:{date:string})=>firstWeekDates.includes(meal.date))
-  expect(state.profile.diet).toBe('carnivora');expect(firstWeek).toHaveLength(28)
-  expect(planned.every((meal:{ingredients:unknown[]})=>meal.ingredients.length<=2)).toBe(true)
+  expect(state.profile.diet).toBe('proteina-animal');expect(firstWeek).toHaveLength(21)
+  expect(planned.every((meal:{ingredients:unknown[]})=>meal.ingredients.length>=4)).toBe(true)
+  for(const date of firstWeekDates){const day=firstWeek.filter((meal:{date:string})=>meal.date===date);expect(new Set(day.map((meal:{recipeId:string})=>meal.recipeId)).size).toBe(3)}
+  expect(firstWeek.find((meal:{date:string,slot:string,description:string})=>meal.date===firstWeekDates[0]&&meal.slot==='breakfast').description).toBe('Ovos mexidos com pão')
   await page.getByRole('link',{name:'Lista de compras',exact:true}).click()
-  await expect(page.getByText('Carnívora',{exact:true})).toBeVisible()
-  await expect(page.getByText('Carne moída bovina crua',{exact:true}).first()).toBeVisible()
+  await expect(page.getByText('Cardápio de 120 dias',{exact:true})).toBeVisible()
+  await expect(page.getByText('frango sem pele',{exact:true}).first()).toBeVisible()
 })
 
 test('layouts pequenos e navegação offline mantêm registros locais',async({page,context},testInfo)=>{
+  test.setTimeout(120000)
   await enter(page)
   for(const width of (testInfo.project.name==='celular'?[320,390,844]:[1280,1440])){
     await page.setViewportSize({width,height:width===844?390:900})

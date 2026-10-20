@@ -10,7 +10,7 @@ export const profileSchema = z.object({
   minutes: z.number().int().min(10).max(90),
   wakeTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   sleepTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  diet: z.enum(['variada', 'carnivora', 'vegetariana', 'vegana', 'mediterranea']),
+  diet: z.literal('proteina-animal'),
   timezone: z.string().refine(value => { try { new Intl.DateTimeFormat('pt-BR', {timeZone: value}); return true } catch { return false } }, 'Fuso horário inválido.'),
   onboarded: z.boolean(),
   allergies: z.array(z.enum(['gluten','leite','ovos','soja','amendoim','castanhas','peixe','crustaceos','gergelim'])).default([]),
@@ -82,9 +82,10 @@ export type Action =
 export type Allergen = Profile['allergies'][number]
 export type MealSlot = NonNullable<Meal['slot']>
 export interface Recipe {
-  id: string; name: string; slots: MealSlot[]; minutes: number; servings: number;
-  diet: 'vegana' | 'vegetariana' | 'variada' | 'carnivora'; economical: boolean;
+  id: string; name: string; slots: MealSlot[]; minutes: number | null; servings: number;
+  diet: 'proteina-animal'; economical: boolean;
   ingredients: Ingredient[]; allergens: Allergen[]; steps: string[]; tags: string[];
+  sourcePortions: string; sourceDay: number;
 }
 export interface Chapter {
   id: number; name: string; start: number; end: number; intro: string; objective: string;

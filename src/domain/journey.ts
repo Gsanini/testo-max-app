@@ -49,7 +49,7 @@ export function personalizationReasons(state: Pick<Workspace,'profile'>) {
   const concern={saude:'investigar a própria saúde',sexual:'cuidar da saúde sexual',energia:'recuperar energia',forca:'preservar força e massa muscular',peso:'cuidar do peso',constancia:'manter constância',prefiro_nao_responder:'nenhuma preocupação principal informada'}[p.mainConcern]
   return [`Até ${p.minutes} min para hábitos e movimento por dia; café, almoço e jantar aparecem como passos separados.`,
     `Até 3 sessões de força por semana nos dias escolhidos, com pausas de recuperação. Cardio leve diariamente ${p.location==='academia'?'na academia':p.location==='casa'?'em casa':'ao ar livre'}.`,
-    `Receitas de até ${p.cookMinutes} min${p.budget==='economico'?', priorizando ingredientes econômicos':''}, filtradas pelas suas preferências e restrições.`,
+    'Cardápio de 120 dias com café da manhã, almoço e jantar e as porções indicadas para uma pessoa; restrições informadas são respeitadas.',
     `Cada refeição, hábito e treino recebe um horário sugerido. Sono planejado das ${p.sleepTime} às ${p.wakeTime}${p.sleepQuality==='irregular'?' com um limite mínimo de 7 horas':''}.`,
     `${context?`Contexto informado: ${context}; `:'Contexto físico opcional não informado; '}${wakeFeeling}. Seu foco relatado é ${concern}.`,
     `${p.perceivedChanges.length?`${p.perceivedChanges.length} mudança${p.perceivedChanges.length===1?'':'s'} percebida${p.perceivedChanges.length===1?'':'s'} registrada${p.perceivedChanges.length===1?'':'s'}`:'Nenhuma mudança percebida registrada'}; esse relato serve para reflexão e não equivale a um diagnóstico.`,

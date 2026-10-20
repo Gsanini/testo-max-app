@@ -13,7 +13,7 @@ import { profileSchema, type Profile, type Allergen } from "@/domain/types";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/common";
 import { cn } from "@/lib/utils";
-import { allergenNames, foods } from "@/content/recipes";
+import { allergenNames, foods, recipes } from "@/content/recipes";
 import { chapters } from "@/content/journey";
 import { personalizationReasons } from "@/domain/journey";
 
@@ -54,6 +54,12 @@ const perceivedChangeOptions: { value: PerceivedChange; label: string }[] = [
   { value: "sono", label: "Sono ruim ou não reparador" },
   { value: "peso", label: "Aumento de gordura ou mudança no peso" },
 ];
+const availableIngredients = new Set(
+  recipes.flatMap((recipe) =>
+    recipe.ingredients.map((ingredient) => ingredient.name),
+  ),
+);
+const relevantAllergens: Allergen[] = ["gluten", "leite", "ovos", "peixe", "amendoim"];
 
 export function PreferencesForm({
   onboarding = false,
@@ -438,28 +444,16 @@ export function PreferencesForm({
     },
     {
       field: "diet",
-      title: "Como você prefere se alimentar?",
-      hint: "As receitas serão selecionadas a partir dessa escolha.",
+      title: "Seu cardápio terá 120 dias",
+      hint: "Café da manhã, almoço e jantar com as porções indicadas.",
       content: (
-        <label>
-          Estilo de alimentação
-          <select {...register("diet")}>
-            <option value='variada'>Variada</option>
-            <option value='carnivora'>Carnívora · carnes, ovos, peixes e laticínios</option>
-            <option value='vegetariana'>Vegetariana</option>
-            <option value='vegana'>Vegana</option>
-            <option value='mediterranea'>
-              Mediterrânea · vegetais e peixes
-            </option>
-          </select>
-          {values.diet === "carnivora" && (
-            <small className='muted copy'>
-              É um padrão alimentar bastante restritivo. O app mostrará opções
-              simples de origem animal, mas não substitui avaliação individual
-              com nutricionista ou médico.
-            </small>
-          )}
-        </label>
+        <div>
+          <p className='muted copy'>
+            O cardápio combina proteínas animais com arroz, feijão, frutas,
+            hortaliças e outros acompanhamentos. As porções são referências
+            para uma pessoa, não uma prescrição individual.
+          </p>
+        </div>
       ),
     },
     {
@@ -469,7 +463,7 @@ export function PreferencesForm({
       content: (
         <>
           <div className='restriction-grid'>
-            {Object.entries(allergenNames).map(([key, label]) => (
+            {relevantAllergens.map((key) => (
               <label key={key} className='restriction'>
                 <input
                   type='checkbox'
@@ -484,7 +478,7 @@ export function PreferencesForm({
                     )
                   }
                 />
-                {label}
+                {allergenNames[key]}
               </label>
             ))}
           </div>
@@ -516,7 +510,11 @@ export function PreferencesForm({
             >
               <option value=''>Escolher ingrediente</option>
               {Object.values(foods)
-                .filter((f) => !values.excludedIngredients.includes(f.name))
+                .filter(
+                  (f) =>
+                    availableIngredients.has(f.name) &&
+                    !values.excludedIngredients.includes(f.name),
+                )
                 .sort((a, b) => a.name.localeCompare(b.name, "pt"))
                 .map((f) => (
                   <option key={f.name}>{f.name}</option>
@@ -547,40 +545,6 @@ export function PreferencesForm({
             Para produtos compostos, confira a composição no rótulo.
           </p>
         </>
-      ),
-    },
-    {
-      field: "budget",
-      title: "Como vamos organizar o orçamento?",
-      hint: "A escolha muda as receitas disponíveis no seu cardápio.",
-      content: options("budget", [
-        {
-          value: "economico",
-          label: "Priorizar opções econômicas",
-          text: "Ingredientes comuns e preparos simples",
-        },
-        {
-          value: "flexivel",
-          label: "Tenho mais flexibilidade",
-          text: "Inclui também opções com ingredientes mais variados",
-        },
-      ]),
-    },
-    {
-      field: "cookMinutes",
-      title: "Quanto tempo você tem para cozinhar?",
-      hint: "Receitas com bases já cozidas indicam isso nos ingredientes. O tempo considera essas bases prontas.",
-      content: (
-        <label>
-          Tempo por preparo
-          <select {...register("cookMinutes", { valueAsNumber: true })}>
-            {[10, 15, 20, 30, 40, 60].map((n) => (
-              <option value={n} key={n}>
-                Até {n} minutos
-              </option>
-            ))}
-          </select>
-        </label>
       ),
     },
     {
